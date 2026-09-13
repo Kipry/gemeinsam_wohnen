@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -68,9 +69,15 @@ export default function ChatScreen() {
     if (!session || !activeHousehold || !text.trim()) return;
     const content = text.trim();
     setText("");
-    await supabase
+
+    const { error } = await supabase
       .from("chat_messages")
       .insert({ household_id: activeHousehold.id, user_id: session.user.id, content });
+
+    if (error) {
+      setText(content);
+      Alert.alert("Nachricht nicht gesendet", error.message);
+    }
   };
 
   return (

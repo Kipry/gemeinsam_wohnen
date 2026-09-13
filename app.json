@@ -8,9 +8,12 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kipry.gemeinsamwohnen",
+      "usesAppleSignIn": true
     },
     "android": {
+      "package": "com.kipry.gemeinsamwohnen",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,7 +27,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-apple-authentication"
     ]
   }
 }

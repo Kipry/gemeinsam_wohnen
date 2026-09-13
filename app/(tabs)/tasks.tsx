@@ -1,47 +1,51 @@
-import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
+import { useTeams } from "../../src/lib/useTeams";
 import { colors } from "../../src/lib/theme";
+import { Button, Chip, Empty, Loading, Screen } from "../../src/components/ui";
 import type { Task, TaskOccurrence } from "../../src/types/database";
 
-type OccurrenceWithTask = TaskOccurrence & { tasks: Pick<Task, "title" | "points" | "interval_days"> };
+type Occurrence = TaskOccurrence & { tasks: Pick<Task, "title" | "points" | "assignment_mode"> };
+
+function formatDue(dueDate: string): string {
+  const due = new Date(`${dueDate}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+
+  if (days === 0) return "heute fällig";
+  if (days === 1) return "morgen fällig";
+  if (days === -1) return "1 Tag überfällig";
+  if (days < 0) return `${Math.abs(days)} Tage überfällig`;
+  return `in ${days} Tagen`;
+}
 
 export default function TasksScreen() {
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
-  const [occurrences, setOccurrences] = useState<OccurrenceWithTask[]>([]);
+  const { teams } = useTeams(activeHousehold?.id);
+  const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [title, setTitle] = useState("");
-  const [points, setPoints] = useState("1");
-  const [intervalDays, setIntervalDays] = useState("7");
+  const [onlyMine, setOnlyMine] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
-    setLoading(true);
     const { data, error } = await supabase
       .from("task_occurrences")
-      .select("*, tasks(title, points, interval_days)")
+      .select("*, tasks(title, points, assignment_mode)")
       .eq("household_id", activeHousehold.id)
       .eq("status", "open")
       .order("due_date", { ascending: true });
 
     if (error) console.error(error);
-    setOccurrences((data as OccurrenceWithTask[]) ?? []);
+    setOccurrences((data as Occurrence[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
 
@@ -51,147 +55,95 @@ export default function TasksScreen() {
     }, [load])
   );
 
-  const nameFor = (userId: string | null) =>
-    members.find((m) => m.id === userId)?.full_name ?? "Niemand";
+  const myTeamIds = useMemo(
+    () => teams.filter((t) => t.member_ids.includes(session?.user.id ?? "")).map((t) => t.id),
+    [teams, session]
+  );
 
-  const markDone = async (occurrence: OccurrenceWithTask) => {
-    if (!session) return;
+  const visible = useMemo(() => {
+    if (!onlyMine) return occurrences;
+    return occurrences.filter(
+      (o) =>
+        o.assigned_to === session?.user.id ||
+        (o.assigned_team_id && myTeamIds.includes(o.assigned_team_id)) ||
+        (!o.assigned_to && !o.assigned_team_id)
+    );
+  }, [occurrences, onlyMine, session, myTeamIds]);
 
-    await supabase
-      .from("task_occurrences")
-      .update({
-        status: "done",
-        completed_by: session.user.id,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", occurrence.id);
-
-    const nextDue = new Date(occurrence.due_date);
-    nextDue.setDate(nextDue.getDate() + occurrence.tasks.interval_days);
-
-    await supabase.from("task_occurrences").insert({
-      task_id: occurrence.task_id,
-      household_id: occurrence.household_id,
-      due_date: nextDue.toISOString().slice(0, 10),
-    });
-
-    load();
+  const assigneeLabel = (occurrence: Occurrence) => {
+    if (occurrence.assigned_to) {
+      const isMe = occurrence.assigned_to === session?.user.id;
+      const name = members.find((m) => m.id === occurrence.assigned_to)?.full_name ?? "?";
+      return isMe ? "Du bist dran" : name;
+    }
+    if (occurrence.assigned_team_id) {
+      const team = teams.find((t) => t.id === occurrence.assigned_team_id);
+      return team ? `Team ${team.name}` : "Team";
+    }
+    return "Wer mag";
   };
 
-  const createTask = async () => {
-    if (!session || !activeHousehold || !title.trim()) return;
-
-    const { data: task, error } = await supabase
-      .from("tasks")
-      .insert({
-        household_id: activeHousehold.id,
-        title: title.trim(),
-        points: Number(points) || 1,
-        interval_days: Number(intervalDays) || 7,
-        created_by: session.user.id,
-      })
-      .select()
-      .single();
-
-    if (error || !task) {
+  const markDone = async (occurrence: Occurrence) => {
+    setBusyId(occurrence.id);
+    const { error } = await supabase.rpc("complete_occurrence", {
+      p_occurrence_id: occurrence.id,
+    });
+    setBusyId(null);
+    if (error) {
       console.error(error);
       return;
     }
-
-    await supabase.from("task_occurrences").insert({
-      task_id: task.id,
-      household_id: activeHousehold.id,
-      due_date: new Date().toISOString().slice(0, 10),
-    });
-
-    setTitle("");
-    setPoints("1");
-    setIntervalDays("7");
-    setModalVisible(false);
     load();
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
+  if (loading) return <Loading />;
 
   return (
-    <View style={styles.container}>
+    <Screen>
+      <View style={styles.filterRow}>
+        <Chip label="Alle" selected={!onlyMine} onPress={() => setOnlyMine(false)} />
+        <Chip label="Für mich" selected={onlyMine} onPress={() => setOnlyMine(true)} />
+      </View>
+
       <FlatList
-        data={occurrences}
+        data={visible}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, gap: 10 }}
-        ListEmptyComponent={<Text style={styles.empty}>Keine offenen Aufgaben. 🎉</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.tasks.title}</Text>
-              <Text style={styles.cardSubtitle}>
-                Fällig: {item.due_date} · {item.tasks.points} Pkt
-                {item.assigned_to ? ` · ${nameFor(item.assigned_to)}` : ""}
-              </Text>
+        contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10 }}
+        ListEmptyComponent={
+          <Empty>
+            {onlyMine ? "Nichts für dich offen. 🎉" : "Keine offenen Aufgaben. Leg unten eine an."}
+          </Empty>
+        }
+        renderItem={({ item }) => {
+          const overdue = item.due_date < new Date().toISOString().slice(0, 10);
+          return (
+            <View style={[styles.card, overdue && styles.cardOverdue]}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.title}>{item.tasks.title}</Text>
+                <Text style={[styles.meta, overdue && { color: colors.danger }]}>
+                  {formatDue(item.due_date)} · {assigneeLabel(item)} · {item.tasks.points} Pkt
+                </Text>
+              </View>
+              <Button
+                title="Erledigt"
+                variant="success"
+                loading={busyId === item.id}
+                onPress={() => markDone(item)}
+              />
             </View>
-            <TouchableOpacity style={styles.doneButton} onPress={() => markDone(item)}>
-              <Text style={styles.doneButtonText}>Erledigt</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          );
+        }}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={styles.fab} onPress={() => router.push("/new-task")}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
-
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Neue Aufgabe</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Titel (z.B. Küche putzen)"
-              value={title}
-              onChangeText={setTitle}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Punkte"
-              value={points}
-              onChangeText={setPoints}
-              keyboardType="number-pad"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Intervall in Tagen"
-              value={intervalDays}
-              onChangeText={setIntervalDays}
-              keyboardType="number-pad"
-            />
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.border }]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={[styles.modalButtonText, { color: colors.text }]}>Abbrechen</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={createTask}>
-                <Text style={styles.modalButtonText}>Erstellen</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  empty: { textAlign: "center", color: colors.subtext, marginTop: 40 },
+  filterRow: { flexDirection: "row", gap: 8, padding: 16, paddingBottom: 8 },
   card: {
     backgroundColor: colors.card,
     borderRadius: 12,
@@ -202,15 +154,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: colors.text },
-  cardSubtitle: { fontSize: 13, color: colors.subtext, marginTop: 2 },
-  doneButton: {
-    backgroundColor: colors.success,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  doneButtonText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  cardOverdue: { borderColor: colors.danger },
+  title: { fontSize: 16, fontWeight: "600", color: colors.text },
+  meta: { fontSize: 13, color: colors.subtext },
   fab: {
     position: "absolute",
     right: 20,
@@ -223,30 +169,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     elevation: 4,
   },
-  fabText: { color: "#fff", fontSize: 28, lineHeight: 28 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modalCard: { backgroundColor: colors.card, borderRadius: 14, padding: 20, gap: 10 },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: colors.text, marginBottom: 6 },
-  input: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-  },
-  modalButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  modalButtonText: { color: "#fff", fontWeight: "600" },
+  fabText: { color: "#fff", fontSize: 28, lineHeight: 30 },
 });

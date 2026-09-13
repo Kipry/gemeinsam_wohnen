@@ -27,7 +27,9 @@ export default function TabsLayout() {
         name="tasks"
         options={{
           title: "Putzplan",
-          tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -38,31 +40,28 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="absences"
+        name="expenses"
         options={{
-          title: "Abwesenheit",
-          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
+          title: "Kosten",
+          tabBarIcon: ({ color, size }) => <Ionicons name="cash" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
           title: "Chat",
-          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="balance"
-        options={{
-          title: "Balance",
-          tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
+        name="more"
         options={{
           title: "Mehr",
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="ellipsis-horizontal" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>
