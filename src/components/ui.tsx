@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -101,6 +101,41 @@ export function Chip({
   );
 }
 
+/**
+ * Kurz eingeblendete Leiste mit "Rückgängig".
+ * Verschwindet nach `timeoutMs` von selbst.
+ */
+export function UndoToast({
+  message,
+  onUndo,
+  onHide,
+  timeoutMs = 8000,
+}: {
+  message: string | null;
+  onUndo: () => void;
+  onHide: () => void;
+  timeoutMs?: number;
+}) {
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(onHide, timeoutMs);
+    return () => clearTimeout(timer);
+  }, [message, timeoutMs, onHide]);
+
+  if (!message) return null;
+
+  return (
+    <View style={styles.undo}>
+      <Text style={styles.undoText} numberOfLines={1}>
+        {message}
+      </Text>
+      <TouchableOpacity onPress={onUndo}>
+        <Text style={styles.undoAction}>Rückgängig</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export function Row({
   title,
   subtitle,
@@ -178,4 +213,19 @@ const styles = StyleSheet.create({
   },
   rowTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
   rowSubtitle: { fontSize: 13, color: colors.subtext, marginTop: 2 },
+  undo: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.text,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  undoText: { flex: 1, color: "#fff", fontSize: 14 },
+  undoAction: { color: "#fff", fontSize: 14, fontWeight: "700", textDecorationLine: "underline" },
 });

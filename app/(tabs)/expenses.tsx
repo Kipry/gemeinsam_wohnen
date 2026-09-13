@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
@@ -29,6 +30,7 @@ export default function ExpensesScreen() {
         .from("expenses")
         .select("*, expense_shares(user_id, share_cents)")
         .eq("household_id", activeHousehold.id)
+        .is("deleted_at", null)
         .order("expense_date", { ascending: false })
         .limit(100),
       supabase.from("expense_balance_view").select("*").eq("household_id", activeHousehold.id),
@@ -148,16 +150,19 @@ export default function ExpensesScreen() {
           const myShare =
             item.expense_shares.find((s) => s.user_id === session?.user.id)?.share_cents ?? 0;
           return (
-            <Card style={styles.expenseCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.expenseTitle}>{item.title}</Text>
-                <Text style={styles.expenseMeta}>
-                  {nameFor(item.paid_by)} · {item.expense_date} · dein Anteil{" "}
-                  {formatCents(myShare)}
-                </Text>
-              </View>
-              <Text style={styles.expenseAmount}>{formatCents(item.amount_cents)}</Text>
-            </Card>
+            <TouchableOpacity onPress={() => router.push(`/expense/${item.id}`)}>
+              <Card style={styles.expenseCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.expenseTitle}>{item.title}</Text>
+                  <Text style={styles.expenseMeta}>
+                    {nameFor(item.paid_by)} · {item.expense_date} · dein Anteil{" "}
+                    {formatCents(myShare)}
+                  </Text>
+                </View>
+                <Text style={styles.expenseAmount}>{formatCents(item.amount_cents)}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
+              </Card>
+            </TouchableOpacity>
           );
         }}
       />

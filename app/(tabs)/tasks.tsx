@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
 import { colors } from "../../src/lib/theme";
-import { Button, Chip, Empty, Loading, Screen } from "../../src/components/ui";
+import { Button, Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
 import type { Task, TaskOccurrence } from "../../src/types/database";
 
 type Occurrence = TaskOccurrence & { tasks: Pick<Task, "title" | "points" | "assignment_mode"> };
@@ -34,6 +34,7 @@ export default function TasksScreen() {
   const [loading, setLoading] = useState(true);
   const [onlyMine, setOnlyMine] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
@@ -90,7 +91,19 @@ export default function TasksScreen() {
     });
     setBusyId(null);
     if (error) {
-      console.error(error);
+      Alert.alert("Fehler", error.message);
+      return;
+    }
+    setUndo({ id: occurrence.id, title: occurrence.tasks.title });
+    load();
+  };
+
+  const undoDone = async () => {
+    if (!undo) return;
+    const { error } = await supabase.rpc("uncomplete_occurrence", { p_occurrence_id: undo.id });
+    setUndo(null);
+    if (error) {
+      Alert.alert("Fehler", error.message);
       return;
     }
     load();
@@ -118,12 +131,15 @@ export default function TasksScreen() {
           const overdue = item.due_date < new Date().toISOString().slice(0, 10);
           return (
             <View style={[styles.card, overdue && styles.cardOverdue]}>
-              <View style={{ flex: 1, gap: 2 }}>
+              <TouchableOpacity
+                style={{ flex: 1, gap: 2 }}
+                onPress={() => router.push(`/task/${item.task_id}`)}
+              >
                 <Text style={styles.title}>{item.tasks.title}</Text>
                 <Text style={[styles.meta, overdue && { color: colors.danger }]}>
                   {formatDue(item.due_date)} · {assigneeLabel(item)} · {item.tasks.points} Pkt
                 </Text>
-              </View>
+              </TouchableOpacity>
               <Button
                 title="Erledigt"
                 variant="success"
@@ -138,6 +154,12 @@ export default function TasksScreen() {
       <TouchableOpacity style={styles.fab} onPress={() => router.push("/new-task")}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+
+      <UndoToast
+        message={undo ? `„${undo.title}" erledigt` : null}
+        onUndo={undoDone}
+        onHide={() => setUndo(null)}
+      />
     </Screen>
   );
 }

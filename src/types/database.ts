@@ -76,11 +76,13 @@ export type ShoppingItem = {
   household_id: string;
   name: string;
   quantity: string | null;
+  category: string | null;
   status: "open" | "bought";
   added_by: string;
   bought_by: string | null;
   bought_at: string | null;
   created_at: string;
+  deleted_at: string | null;
 };
 
 export type Absence = {
@@ -110,14 +112,19 @@ export type Expense = {
   paid_by: string;
   expense_date: string;
   note: string | null;
+  category: string | null;
+  split_mode: "equal" | "amounts" | "weights";
   created_by: string;
   created_at: string;
+  updated_at: string | null;
+  deleted_at: string | null;
 };
 
 export type ExpenseShare = {
   expense_id: string;
   user_id: string;
   share_cents: number;
+  weight: number | null;
 };
 
 export type Settlement = {
