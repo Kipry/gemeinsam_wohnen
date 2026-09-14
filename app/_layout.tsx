@@ -21,6 +21,10 @@ export default function RootLayout() {
             name="new-expense"
             options={{ title: "Neue Ausgabe", presentation: "modal" }}
           />
+          <Stack.Screen
+            name="finish-trip"
+            options={{ title: "Einkauf abrechnen", presentation: "modal" }}
+          />
           <Stack.Screen name="expense/[id]" options={{ title: "Ausgabe" }} />
           <Stack.Screen name="task/[id]" options={{ title: "Aufgabe" }} />
           <Stack.Screen name="absences" options={{ title: "Abwesenheiten" }} />

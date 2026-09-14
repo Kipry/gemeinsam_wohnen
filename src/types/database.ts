@@ -84,8 +84,20 @@ export type ShoppingItem = {
   added_by: string;
   bought_by: string | null;
   bought_at: string | null;
+  trip_id: string | null;
   created_at: string;
   deleted_at: string | null;
+};
+
+export type ShoppingTrip = {
+  id: string;
+  household_id: string;
+  shopper: string;
+  store: string | null;
+  started_at: string;
+  finished_at: string | null;
+  total_cents: number | null;
+  expense_id: string | null;
 };
 
 export type Absence = {

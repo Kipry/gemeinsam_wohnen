@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
 import {
   Alert,
   Modal,
@@ -16,7 +17,7 @@ import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { colors } from "../../src/lib/theme";
 import { AISLE_ORDER, guessCategory, normalizeName } from "../../src/lib/shoppingCategories";
 import { Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
-import type { ShoppingItem } from "../../src/types/database";
+import type { ShoppingItem, ShoppingTrip } from "../../src/types/database";
 
 export default function ShoppingScreen() {
   const { session } = useAuth();
@@ -29,7 +30,47 @@ export default function ShoppingScreen() {
   const [showDone, setShowDone] = useState(false);
   const [undo, setUndo] = useState<ShoppingItem | null>(null);
   const [categoryFor, setCategoryFor] = useState<ShoppingItem | null>(null);
+  const [trip, setTrip] = useState<ShoppingTrip | null>(null);
   const inputRef = useRef<TextInput>(null);
+
+  const loadTrip = useCallback(async () => {
+    if (!activeHousehold || !session) return;
+    const { data } = await supabase
+      .from("shopping_trips")
+      .select("*")
+      .eq("household_id", activeHousehold.id)
+      .eq("shopper", session.user.id)
+      .is("finished_at", null)
+      .maybeSingle();
+
+    setTrip((data as ShoppingTrip) ?? null);
+  }, [activeHousehold, session]);
+
+  const startTrip = async () => {
+    if (!activeHousehold) return;
+    const { data, error } = await supabase.rpc("start_shopping_trip", {
+      p_household_id: activeHousehold.id,
+    });
+    if (error) {
+      Alert.alert("Fehler", error.message);
+      return;
+    }
+    setTrip(data as ShoppingTrip);
+  };
+
+  const cancelTrip = async () => {
+    if (!trip) return;
+    Alert.alert("Einkauf beenden", "Ohne Ausgabe abschließen?", [
+      { text: "Abbrechen", style: "cancel" },
+      {
+        text: "Beenden",
+        onPress: async () => {
+          await supabase.rpc("cancel_shopping_trip", { p_trip_id: trip.id });
+          setTrip(null);
+        },
+      },
+    ]);
+  };
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
@@ -74,6 +115,7 @@ export default function ShoppingScreen() {
   useEffect(() => {
     load();
     loadHistory();
+    loadTrip();
     if (!activeHousehold) return;
 
     // Einzelne Ereignisse einpflegen statt die ganze Liste neu zu laden —
@@ -102,7 +144,14 @@ export default function ShoppingScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeHousehold, load, loadHistory]);
+  }, [activeHousehold, load, loadHistory, loadTrip]);
+
+  // Nach dem Abrechnen (Rückkehr von /finish-trip) ist die Sitzung vorbei
+  useFocusEffect(
+    useCallback(() => {
+      loadTrip();
+    }, [loadTrip])
+  );
 
   const addItem = async (rawName?: string) => {
     const value = (rawName ?? name).trim();
@@ -161,6 +210,8 @@ export default function ShoppingScreen() {
         status: bought ? "bought" : "open",
         bought_by: bought ? session.user.id : null,
         bought_at: bought ? new Date().toISOString() : null,
+        // Während einer laufenden Sitzung gehört alles Abgehakte zu diesem Einkauf
+        trip_id: bought ? trip?.id ?? null : null,
       })
       .eq("id", item.id);
 
@@ -216,6 +267,11 @@ export default function ShoppingScreen() {
     return grouped;
   }, [items, showDone]);
 
+  const tripItemCount = useMemo(
+    () => (trip ? items.filter((item) => item.trip_id === trip.id).length : 0),
+    [items, trip]
+  );
+
   const suggestions = useMemo(() => {
     const openNames = new Set(
       items.filter((item) => item.status === "open").map((item) => normalizeName(item.name))
@@ -256,6 +312,26 @@ export default function ShoppingScreen() {
           </View>
         )}
       </View>
+
+      {trip ? (
+        <View style={styles.tripBar}>
+          <Ionicons name="basket" size={18} color="#fff" />
+          <Text style={styles.tripText}>
+            Einkauf läuft · {tripItemCount} {tripItemCount === 1 ? "Artikel" : "Artikel"}
+          </Text>
+          <TouchableOpacity onPress={cancelTrip}>
+            <Text style={styles.tripCancel}>Verwerfen</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.tripDone} onPress={() => router.push("/finish-trip")}>
+            <Text style={styles.tripDoneText}>Abrechnen</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.startTrip} onPress={startTrip}>
+          <Ionicons name="basket-outline" size={18} color={colors.primary} />
+          <Text style={styles.startTripText}>Ich kauf ein</Text>
+        </TouchableOpacity>
+      )}
 
       <SectionList
         sections={sections}
@@ -379,6 +455,34 @@ const styles = StyleSheet.create({
   },
   hint: { fontSize: 13, color: colors.danger },
   suggestions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  startTrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  startTripText: { fontSize: 15, fontWeight: "600", color: colors.primary },
+  tripBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.primary,
+  },
+  tripText: { flex: 1, color: "#fff", fontSize: 14, fontWeight: "600" },
+  tripCancel: { color: "#fff", fontSize: 13, textDecorationLine: "underline" },
+  tripDone: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  tripDoneText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",

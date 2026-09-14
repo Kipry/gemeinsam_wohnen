@@ -8,6 +8,9 @@ import { AmountDisplay, AmountKeypad } from "./AmountKeypad";
 import { Button, Chip, ErrorText, Input, Muted, SectionTitle } from "./ui";
 import type { Profile } from "../types/database";
 
+/** 4 Reihen à 52 + Abstände + Innenabstand des Keypads */
+const KEYPAD_HEIGHT = 248;
+
 export const CATEGORIES = [
   "Lebensmittel",
   "Drogerie",
@@ -58,7 +61,8 @@ export function ExpenseForm({
   onSubmit: (values: ExpenseFormValues) => void;
 }) {
   const [amount, setAmount] = useState(initial?.amountExpression ?? "");
-  const [keypadOpen, setKeypadOpen] = useState(!initial);
+  // Betrag ist immer das Erste — Keypad offen, solange noch keiner drinsteht
+  const [keypadOpen, setKeypadOpen] = useState(!initial?.amountExpression);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [category, setCategory] = useState<string | null>(initial?.category ?? null);
   const [paidBy, setPaidBy] = useState(initial?.paid_by ?? currentUserId);
@@ -143,10 +147,12 @@ export function ExpenseForm({
     <View style={styles.container}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.content}
+        // Das Keypad liegt über dem Formular — ohne diesen Freiraum bleibt der
+        // Speichern-Knopf darunter verborgen und ist nicht antippbar.
+        contentContainerStyle={[styles.content, keypadOpen && { paddingBottom: KEYPAD_HEIGHT + 24 }]}
         keyboardShouldPersistTaps="handled"
       >
-        <AmountDisplay value={amount} active={keypadOpen} onPress={() => setKeypadOpen(true)} />
+        <AmountDisplay value={amount} active={keypadOpen} onPress={() => setKeypadOpen(!keypadOpen)} />
 
         <SectionTitle>Wofür</SectionTitle>
         <View style={styles.chipWrap}>
