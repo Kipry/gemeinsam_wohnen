@@ -11,12 +11,12 @@ Fairness-Statistik (wer hat wie viel im Haushalt gemacht).
 | --- | --- |
 | **Login** | E-Mail + Passwort, „Mit Apple anmelden" (iOS) |
 | **WGs** | WG erstellen oder per 6-stelligem Einladungscode beitreten; ein Account kann in mehreren WGs sein |
-| **Putzplan** | Wiederkehrende Aufgaben mit Punkten und Intervall. Zuteilung wahlweise: *wer mag*, *reihum an Personen*, *reihum an Teams*, *feste Person*. Nach dem Abhaken wird der Folgetermin automatisch erzeugt und die Rotation rückt weiter |
+| **Putzplan** | Wiederkehrende Aufgaben mit Punkten, Intervall und optional festem Wochentag. Zuteilung wahlweise: *wer mag*, *reihum an Personen*, *reihum an Teams*, *feste Person*. Termine werden vier Wochen im Voraus geplant — Ansicht „Plan" zeigt sie nach Wochen gruppiert. Vorlagen für die häufigsten WG-Aufgaben. Abhaken ist rückgängig zu machen, Aufgaben lassen sich bearbeiten, pausieren und löschen |
 | **Teams** | Putz-Teams anlegen und Mitglieder zuordnen — Aufgaben können reihum an ganze Teams gehen |
 | **Tracking** | Statistik pro Person: erledigte Aufgaben, Punkte, Pünktlichkeitsquote, offene und überfällige Zuweisungen, Vergleich zum WG-Durchschnitt |
-| **Kosten** | Ausgaben erfassen (gleichmäßig oder individuell aufgeteilt), Saldo pro Person, Vorschlag „wer zahlt wem" mit möglichst wenigen Überweisungen, Rückzahlungen abhaken |
-| **Einkauf** | Gemeinsame Liste, Realtime-Sync |
-| **Abwesenheiten** | Zeiträume melden — abwesende Personen werden in Putzplan-Rotationen automatisch übersprungen |
+| **Kosten** | Ausgaben mit eingebautem Rechen-Keypad erfassen („12,50+8,30" ergibt live 20,80 €). Aufteilung gleichmäßig, mit festen Beträgen oder nach Anteilen (1:2 bei ungleich großen Zimmern). Beteiligte per Häkchen, Kategorie-Chips. Saldo pro Person, Vorschlag „wer zahlt wem" mit möglichst wenigen Überweisungen. Ausgaben lassen sich öffnen, korrigieren und löschen |
+| **Einkauf** | Liste nach Regalreihenfolge sortiert, Kategorie wird beim Tippen geraten. Vorschläge aus der WG-Historie, Dublettenerkennung, Mengen-Stepper, Realtime-Sync, Löschen mit Rückgängig |
+| **Abwesenheiten** | Melden per Chip (Heute, Morgen, Wochenende, nächste Woche) oder eigener Zeitraum. Abwesende werden aus geplanten Rotations-Terminen herausgenommen und der weitere Plan neu verteilt, damit der Einspringer nicht mehrfach hintereinander dran ist |
 | **Chat** | WG-interner Realtime-Chat |
 
 ## Setup
