@@ -14,6 +14,7 @@ Fairness-Statistik (wer hat wie viel im Haushalt gemacht).
 | **Putzplan** | Wiederkehrende Aufgaben mit Punkten, Intervall und optional festem Wochentag. Zuteilung wahlweise: *wer mag*, *reihum an Personen*, *reihum an Teams*, *feste Person*. Termine werden vier Wochen im Voraus geplant — Ansicht „Plan" zeigt sie nach Wochen gruppiert. Vorlagen für die häufigsten WG-Aufgaben. Abhaken ist rückgängig zu machen, Aufgaben lassen sich bearbeiten, pausieren und löschen |
 | **Teams** | Putz-Teams anlegen und Mitglieder zuordnen — Aufgaben können reihum an ganze Teams gehen |
 | **Tracking** | Statistik pro Person: erledigte Aufgaben, Punkte, Pünktlichkeitsquote, offene und überfällige Zuweisungen, Vergleich zum WG-Durchschnitt |
+| **Monatsrückblick** | Pro Monat: Gesamtausgaben mit Vergleich zum Vormonat und eigenem Anteil, Ausgaben nach Kategorie, wer was bezahlt und getragen hat, Putzpunkte und Pünktlichkeit pro Person |
 | **Kosten** | Ausgaben mit eingebautem Rechen-Keypad erfassen („12,50+8,30" ergibt live 20,80 €). Aufteilung gleichmäßig, mit festen Beträgen oder nach Anteilen (1:2 bei ungleich großen Zimmern). Beteiligte per Häkchen, Kategorie-Chips, Foto vom Kassenbon (Kamera oder Galerie, privat pro WG gespeichert). Saldo pro Person, Vorschlag „wer zahlt wem" mit möglichst wenigen Überweisungen. Ausgaben lassen sich öffnen, korrigieren und löschen |
 | **Einkauf** | Liste nach Regalreihenfolge sortiert, Kategorie wird beim Tippen geraten. Vorschläge aus der WG-Historie, Dublettenerkennung, Mengen-Stepper, Realtime-Sync, Löschen mit Rückgängig. „Ich kauf ein" öffnet eine Einkaufs-Sitzung; am Ende wird daraus mit einem Betrag eine geteilte Ausgabe — ohne alles zweimal zu tippen |
 | **Feste Kosten** | Miete, Strom, Streaming einmal anlegen; die App bucht die Ausgabe monatlich selbst und holt verpasste Monate nach |
@@ -107,7 +108,8 @@ app/                 Screens (Expo Router, dateibasiertes Routing)
   new-task.tsx       Aufgabe anlegen (inkl. Rotationsreihenfolge)
   new-expense.tsx    Ausgabe anlegen (inkl. Aufteilung)
   new-event.tsx, event/[id].tsx, new-absence.tsx
-  more.tsx, teams.tsx, stats.tsx
+  onboarding.tsx, claim.tsx  WG-Einstieg und Übernahme eines Platzhalters
+  more.tsx, review.tsx, teams.tsx, stats.tsx
 src/components/ui.tsx  Gemeinsame UI-Bausteine
 src/lib/             Supabase-Client, Auth-/Household-Context, Geld-Helfer, Theme
 src/types/           TypeScript-Typen der DB-Tabellen
@@ -117,4 +119,3 @@ supabase/migrations/ Datenbankschema
 ## Ideen für später
 
 - Push-Benachrichtigungen bei fälligen Aufgaben und neuen Nachrichten
-- Monatsrückblick: Punkte und Kosten pro Person

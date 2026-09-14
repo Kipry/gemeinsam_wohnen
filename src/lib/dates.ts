@@ -34,6 +34,19 @@ export function monthGrid(year: number, month: number): string[] {
   return Array.from({ length: 42 }, (_, index) => addDays(start, index));
 }
 
+/** Erster und letzter Tag eines Monats als ISO-Datum. month ist 0-basiert. */
+export function monthRange(year: number, month: number): { start: string; end: string } {
+  return {
+    start: toISO(new Date(year, month, 1, 12)),
+    end: toISO(new Date(year, month + 1, 0, 12)),
+  };
+}
+
+/** "September" */
+export function monthName(month: number): string {
+  return MONTHS[((month % 12) + 12) % 12];
+}
+
 /** Liegt das Datum im angegebenen Monat? */
 export function isInMonth(iso: string, year: number, month: number): boolean {
   const date = new Date(`${iso}T12:00:00`);

@@ -11,6 +11,12 @@ import { colors } from "../src/lib/theme";
 import { Button, Card, Input, SectionTitle } from "../src/components/ui";
 
 const LINKS = [
+  {
+    href: "/review",
+    icon: "bar-chart",
+    title: "Monatsrückblick",
+    subtitle: "Kosten und Putzen im Monat",
+  },
   { href: "/stats", icon: "stats-chart", title: "Statistik", subtitle: "Wer hat wie viel gemacht" },
   {
     href: "/recurring",
