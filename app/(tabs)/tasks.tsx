@@ -17,7 +17,8 @@ import { hapticSuccess, hapticTap } from "../../src/lib/haptics";
 import { PushPrompt } from "../../src/components/PushPrompt";
 import { onChoreCompleted } from "../../src/lib/choreEvents";
 import { useWaste } from "../../src/lib/useWaste";
-import { collectionsBetween, joinLabels } from "../../src/lib/waste";
+import { collectionsBetween } from "../../src/lib/waste";
+import { joinWithAnd } from "../../src/lib/text";
 import type { Task, TaskOccurrence, TaskRotationEntry } from "../../src/types/database";
 
 type Occurrence = TaskOccurrence & {
@@ -141,8 +142,8 @@ export default function TasksScreen() {
     );
     const tomorrowLabels = upcoming.filter((entry) => entry.date !== today).map((entry) => entry.bin.label);
     const todayLabels = upcoming.filter((entry) => entry.date === today).map((entry) => entry.bin.label);
-    if (tomorrowLabels.length > 0) return `Heute Abend rausstellen: ${joinLabels(tomorrowLabels)}`;
-    if (todayLabels.length > 0 && new Date().getHours() < 12) return `Heute wird abgeholt: ${joinLabels(todayLabels)}`;
+    if (tomorrowLabels.length > 0) return `Heute Abend rausstellen: ${joinWithAnd(tomorrowLabels)}`;
+    if (todayLabels.length > 0 && new Date().getHours() < 12) return `Heute wird abgeholt: ${joinWithAnd(todayLabels)}`;
     return null;
   }, [bins, changes]);
 

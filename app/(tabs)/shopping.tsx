@@ -3,6 +3,7 @@ import { router, useFocusEffect } from "expo-router";
 import {
   Alert,
   Modal,
+  Platform,
   SectionList,
   StyleSheet,
   Text,
@@ -13,13 +14,20 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 import { useRefresh } from "../../src/lib/useRefresh";
-import { hapticTap } from "../../src/lib/haptics";
+import { hapticSuccess, hapticTap } from "../../src/lib/haptics";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { AISLE_ORDER, guessCategory, normalizeName } from "../../src/lib/shoppingCategories";
+import { parseShoppingList, pastedLines, splitAmount, type PastedItem } from "../../src/lib/pastedList";
 import { Chip, Empty, Loading, pullToRefresh, Screen, UndoToast } from "../../src/components/ui";
+import { PastedListSheet } from "../../src/components/PastedListSheet";
 import type { ShoppingItem, ShoppingTrip } from "../../src/types/database";
+
+type Undo = { message: string; ids: string[]; action: "restore" | "remove" };
+
+/** Zählbare Menge bekommt Plus/Minus, „500 g" oder „1 Dose" steht nur da */
+const isCount = (quantity: string | null) => quantity === null || /^\d{1,2}$/.test(quantity);
 
 export default function ShoppingScreen() {
   const styles = useStyles();
@@ -32,9 +40,10 @@ export default function ShoppingScreen() {
   const [name, setName] = useState("");
   const [hint, setHint] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
-  const [undo, setUndo] = useState<ShoppingItem | null>(null);
+  const [undo, setUndo] = useState<Undo | null>(null);
   const [categoryFor, setCategoryFor] = useState<ShoppingItem | null>(null);
   const [trip, setTrip] = useState<ShoppingTrip | null>(null);
+  const [pasted, setPasted] = useState<PastedItem[] | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   const loadTrip = useCallback(async () => {
@@ -161,9 +170,11 @@ export default function ShoppingScreen() {
   const addItem = async (rawName?: string) => {
     const value = (rawName ?? name).trim();
     if (!session || !activeHousehold || !value) return;
+    // „2 Zwiebeln" soll als Zwiebeln mit 2× auf die Liste, nicht als Name mit 1×
+    const { name: itemName, quantity } = splitAmount(value);
 
     const duplicate = items.find(
-      (item) => item.status === "open" && normalizeName(item.name) === normalizeName(value)
+      (item) => item.status === "open" && normalizeName(item.name) === normalizeName(itemName)
     );
     if (duplicate) {
       setHint(`„${duplicate.name}" steht schon auf der Liste`);
@@ -178,8 +189,9 @@ export default function ShoppingScreen() {
 
     const { error } = await supabase.from("shopping_items").insert({
       household_id: activeHousehold.id,
-      name: value,
-      category: guessCategory(value),
+      name: itemName,
+      quantity,
+      category: guessCategory(itemName),
       added_by: session.user.id,
     });
 
@@ -189,6 +201,70 @@ export default function ShoppingScreen() {
       return;
     }
     hapticTap();
+    load();
+  };
+
+  const submitOnWebEnter = (event: any) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      addItem();
+    }
+  };
+
+  // Mehrere Zeilen kommen nur durchs Einfügen ins Feld — die Eingabetaste schickt ab.
+  // Bei manchen Android-Tastaturen landet sie aber als Zeilenumbruch hier.
+  const changeName = (value: string) => {
+    if (!/[\r\n]/.test(value)) {
+      setName(value);
+      return;
+    }
+
+    const lines = pastedLines(value);
+    if (lines.length <= 1) {
+      addItem(lines[0] ?? "");
+      if (lines.length === 0) setName("");
+      return;
+    }
+
+    setName("");
+    const parsed = parseShoppingList(value);
+    if (parsed.length === 0) {
+      setHint("In der eingefügten Liste war nichts zum Einkaufen dabei");
+    } else if (parsed.length === 1) {
+      addPasted(parsed);
+    } else {
+      setHint(null);
+      setPasted(parsed);
+    }
+  };
+
+  const addPasted = async (entries: PastedItem[]) => {
+    setPasted(null);
+    if (!session || !activeHousehold || entries.length === 0) return;
+
+    const { data, error } = await supabase
+      .from("shopping_items")
+      .insert(
+        entries.map((entry) => ({
+          household_id: activeHousehold.id,
+          name: entry.name,
+          quantity: entry.quantity,
+          category: guessCategory(entry.name),
+          added_by: session.user.id,
+        }))
+      )
+      .select("id");
+
+    if (error) {
+      Alert.alert("Fehler", error.message);
+      return;
+    }
+    hapticSuccess();
+    setUndo({
+      message: entries.length === 1 ? `„${entries[0].name}" hinzugefügt` : `${entries.length} Artikel hinzugefügt`,
+      ids: (data ?? []).map((row) => row.id as string),
+      action: "remove",
+    });
     load();
   };
 
@@ -239,17 +315,23 @@ export default function ShoppingScreen() {
 
   const removeItem = async (item: ShoppingItem) => {
     setItems((prev) => prev.filter((entry) => entry.id !== item.id));
-    setUndo(item);
+    setUndo({ message: `„${item.name}" gelöscht`, ids: [item.id], action: "restore" });
     await supabase
       .from("shopping_items")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", item.id);
   };
 
-  const undoRemove = async () => {
+  const undoLast = async () => {
     if (!undo) return;
-    await supabase.from("shopping_items").update({ deleted_at: null }).eq("id", undo.id);
     setUndo(null);
+    if (undo.action === "remove") {
+      setItems((prev) => prev.filter((entry) => !undo.ids.includes(entry.id)));
+    }
+    await supabase
+      .from("shopping_items")
+      .update({ deleted_at: undo.action === "remove" ? new Date().toISOString() : null })
+      .in("id", undo.ids);
     load();
   };
 
@@ -279,12 +361,15 @@ export default function ShoppingScreen() {
     [items, trip]
   );
 
-  const suggestions = useMemo(() => {
-    const openNames = new Set(
-      items.filter((item) => item.status === "open").map((item) => normalizeName(item.name))
-    );
-    return history.filter((entry) => !openNames.has(normalizeName(entry))).slice(0, 6);
-  }, [history, items]);
+  const openNames = useMemo(
+    () => new Set(items.filter((item) => item.status === "open").map((item) => normalizeName(item.name))),
+    [items]
+  );
+
+  const suggestions = useMemo(
+    () => history.filter((entry) => !openNames.has(normalizeName(entry))).slice(0, 6),
+    [history, openNames]
+  );
 
   if (loading) return <Loading />;
 
@@ -298,10 +383,14 @@ export default function ShoppingScreen() {
             placeholder="Was fehlt?"
             placeholderTextColor={colors.subtext}
             value={name}
-            onChangeText={setName}
+            onChangeText={changeName}
             onSubmitEditing={() => addItem()}
             returnKeyType="next"
-            blurOnSubmit={false}
+            // Mehrzeilig nur, damit eingefügte Listen ihre Zeilen behalten
+            multiline
+            submitBehavior="submit"
+            // Im Browser kennt das Textfeld submitBehavior nicht und wäre zwei Zeilen hoch
+            {...(Platform.OS === "web" ? { rows: 1, onKeyPress: submitOnWebEnter } : null)}
             autoCorrect={false}
           />
           <TouchableOpacity style={styles.addButton} onPress={() => addItem()}>
@@ -347,7 +436,15 @@ export default function ShoppingScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
         stickySectionHeadersEnabled={false}
-        ListEmptyComponent={<Empty>Einkaufsliste ist leer.</Empty>}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Empty>Einkaufsliste ist leer.</Empty>
+            <Text style={styles.emptyTip}>
+              Tipp: Eine kopierte Liste, z.B. die Zutaten aus einem Rezept, einfach ins Feld oben
+              einfügen – jede Zeile wird ein Artikel.
+            </Text>
+          </View>
+        }
         renderSectionHeader={({ section }) => {
           const isDone = section.title.startsWith("Erledigt");
           return (
@@ -384,7 +481,7 @@ export default function ShoppingScreen() {
                 <Text style={[styles.itemName, bought && styles.itemDone]}>{item.name}</Text>
               </TouchableOpacity>
 
-              {!bought && (
+              {!bought && isCount(item.quantity) && (
                 <View style={styles.stepper}>
                   <TouchableOpacity onPress={() => setQuantity(item, -1)} style={styles.stepperButton}>
                     <Ionicons name="remove" size={14} color={colors.text} />
@@ -394,6 +491,11 @@ export default function ShoppingScreen() {
                     <Ionicons name="add" size={14} color={colors.text} />
                   </TouchableOpacity>
                 </View>
+              )}
+              {!bought && !isCount(item.quantity) && (
+                <Text style={styles.amount} numberOfLines={1}>
+                  {item.quantity}
+                </Text>
               )}
 
               <TouchableOpacity onPress={() => setCategoryFor(item)} style={styles.iconButton}>
@@ -407,10 +509,13 @@ export default function ShoppingScreen() {
         }}
       />
 
-      <UndoToast
-        message={undo ? `„${undo.name}" gelöscht` : null}
-        onUndo={undoRemove}
-        onHide={() => setUndo(null)}
+      <UndoToast message={undo?.message ?? null} onUndo={undoLast} onHide={() => setUndo(null)} />
+
+      <PastedListSheet
+        items={pasted}
+        alreadyOnList={openNames}
+        onCancel={() => setPasted(null)}
+        onAdd={addPasted}
       />
 
       <Modal visible={categoryFor !== null} transparent animationType="fade">
@@ -454,6 +559,7 @@ const useStyles = makeStyles((colors) => ({
     paddingVertical: 10,
     fontSize: 15,
     color: colors.text,
+    maxHeight: 120,
   },
   addButton: {
     backgroundColor: colors.primary,
@@ -532,6 +638,9 @@ const useStyles = makeStyles((colors) => ({
     alignItems: "center",
   },
   quantity: { fontSize: 13, color: colors.subtext, minWidth: 22, textAlign: "center" },
+  amount: { fontSize: 13, color: colors.subtext, maxWidth: 110 },
+  empty: { alignItems: "center", gap: 8, paddingHorizontal: 24 },
+  emptyTip: { fontSize: 13, color: colors.subtext, textAlign: "center", lineHeight: 19 },
   iconButton: { padding: 6 },
   modalOverlay: {
     flex: 1,

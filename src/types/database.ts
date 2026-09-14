@@ -150,29 +150,43 @@ export type CalendarEventAttendee = {
   responded_at: string;
 };
 
-export type ChatKind = "message" | "event" | "announcement" | "request";
+export type ChatKind = "message" | "event" | "announcement" | "request" | "poll";
 
 export type ChatMessage = {
   id: string;
   household_id: string;
   user_id: string;
+  /** Bei Umfragen die Frage */
   content: string;
   kind: ChatKind;
   ref_table: string | null;
   ref_id: string | null;
   reply_to: string | null;
-  /** Aushang klebt oben bis zu diesem Tag */
+  /** Aushang klebt oben bis zu diesem Tag (höchstens) */
   pinned_until: string | null;
   claimed_by: string | null;
   done_at: string | null;
   deleted_at: string | null;
   created_at: string;
+  /** Antwortmöglichkeiten, nur bei Umfragen */
+  poll_options: string[] | null;
+  poll_multiple: boolean;
+  poll_closed_at: string | null;
 };
 
 export type ChatReceipt = {
   message_id: string;
   user_id: string;
   read_at: string;
+};
+
+export type PollVote = {
+  message_id: string;
+  user_id: string;
+  household_id: string;
+  /** Positionen in `poll_options`; leer = Stimme zurückgenommen */
+  choices: number[];
+  updated_at: string;
 };
 
 export type Expense = {

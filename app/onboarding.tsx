@@ -10,14 +10,9 @@ import { addDays, todayISO } from "../src/lib/dates";
 import { TEMPLATES } from "../src/components/TaskForm";
 import { intervalLabel } from "../src/lib/taskLabels";
 import { Button, ErrorText, Input, Loading, Muted } from "../src/components/ui";
+import { joinWithAnd } from "../src/lib/text";
 
 const PRESELECTED = ["Müll rausbringen", "Bad putzen", "Küche putzen", "Staubsaugen"];
-
-/** "Lisa", "Lisa und Tom", "Lisa, Tom und Max" */
-function joinNames(names: string[]) {
-  if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")} und ${names[names.length - 1]}`;
-}
 
 /**
  * Direkt nach dem Gründen der WG: statt vor einer leeren App zu sitzen,
@@ -177,7 +172,7 @@ export default function Onboarding() {
           <Text style={styles.title}>Was muss regelmäßig gemacht werden?</Text>
           <Muted>
             {roommates.length > 0
-              ? `Ihr wechselt euch ab: du, ${joinNames(roommates)}. Alles lässt sich später ändern.`
+              ? `Ihr wechselt euch ab: du, ${joinWithAnd(roommates)}. Alles lässt sich später ändern.`
               : "Alles lässt sich später ändern und um weitere Aufgaben ergänzen."}
           </Muted>
 
@@ -222,7 +217,7 @@ export default function Onboarding() {
               ? `${createdCount} Aufgaben sind für die nächsten vier Wochen verteilt.`
               : "Aufgaben kannst du jederzeit im Putzplan anlegen."}
             {roommates.length > 0
-              ? ` ${joinNames(roommates)} ${roommates.length === 1 ? "steht" : "stehen"} schon drin — jetzt fehlt nur noch der Einladungslink.`
+              ? ` ${joinWithAnd(roommates)} ${roommates.length === 1 ? "steht" : "stehen"} schon drin — jetzt fehlt nur noch der Einladungslink.`
               : ""}
           </Muted>
           <Button title="Mitbewohner einladen" onPress={() => finish(true)} />

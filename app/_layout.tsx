@@ -78,6 +78,10 @@ export default function RootLayout() {
               name="new-absence"
               options={{ title: "Ich bin weg", presentation: "modal" }}
             />
+            <Stack.Screen
+              name="new-poll"
+              options={{ title: "Neue Umfrage", presentation: "modal" }}
+            />
             <Stack.Screen name="teams" options={{ title: "Teams" }} />
             <Stack.Screen name="stats" options={{ title: "Statistik" }} />
             <Stack.Screen name="delete-account" options={{ title: "Konto löschen" }} />

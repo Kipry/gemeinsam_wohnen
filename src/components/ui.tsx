@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -75,10 +75,12 @@ export function Loading() {
   );
 }
 
-export function Input(props: TextInputProps) {
+export function Input({ ref, ...props }: TextInputProps & { ref?: Ref<TextInput> }) {
   const styles = useStyles();
   const colors = useColors();
-  return <TextInput placeholderTextColor={colors.subtext} {...props} style={[styles.input, props.style]} />;
+  return (
+    <TextInput ref={ref} placeholderTextColor={colors.subtext} {...props} style={[styles.input, props.style]} />
+  );
 }
 
 export function Button({
@@ -125,14 +127,20 @@ export function Chip({
   label,
   selected,
   onPress,
+  compact,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  /** Schmaler, z.B. wenn vier Chips in eine Zeile müssen */
+  compact?: boolean;
 }) {
   const styles = useStyles();
   return (
-    <TouchableOpacity style={[styles.chip, selected && styles.chipSelected]} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.chip, compact && styles.chipCompact, selected && styles.chipSelected]}
+      onPress={onPress}
+    >
       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
     </TouchableOpacity>
   );
@@ -154,11 +162,17 @@ export function UndoToast({
   timeoutMs?: number;
 }) {
   const styles = useStyles();
+  // onHide kommt meist als neue Funktion je Zeichnen — ohne Ref begänne der Timer
+  // bei jeder Echtzeit-Aktualisierung von vorn und die Leiste bliebe stehen
+  const onHideRef = useRef(onHide);
+  useEffect(() => {
+    onHideRef.current = onHide;
+  });
   useEffect(() => {
     if (!message) return;
-    const timer = setTimeout(onHide, timeoutMs);
+    const timer = setTimeout(() => onHideRef.current(), timeoutMs);
     return () => clearTimeout(timer);
-  }, [message, timeoutMs, onHide]);
+  }, [message, timeoutMs]);
 
   if (!message) return null;
 
@@ -236,6 +250,7 @@ const useStyles = makeStyles((colors) => ({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
+  chipCompact: { paddingHorizontal: 11 },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { color: colors.text, fontSize: 14 },
   chipTextSelected: { color: "#fff", fontWeight: "600" },

@@ -8,18 +8,13 @@ import { useHousehold } from "../src/lib/HouseholdProvider";
 import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
 import { signOutToLogin } from "../src/lib/signOut";
+import { joinWithAnd } from "../src/lib/text";
 import { Button, Card, ErrorText, Loading, Muted } from "../src/components/ui";
 
 type Overview = {
   soloHouseholds: string[];
   openBalances: { name: string; netCents: number }[];
 };
-
-/** "WG A", "WG A und WG B", "WG A, WG B und WG C" */
-function joinNames(names: string[]) {
-  if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")} und ${names[names.length - 1]}`;
-}
 
 export default function DeleteAccountScreen() {
   const styles = useStyles();
@@ -119,7 +114,7 @@ export default function DeleteAccountScreen() {
         </Bullet>
         {overview.soloHouseholds.length > 0 && (
           <Bullet icon="home-outline">
-            {joinNames(overview.soloHouseholds)}{" "}
+            {joinWithAnd(overview.soloHouseholds)}{" "}
             {overview.soloHouseholds.length === 1 ? "wird" : "werden"} komplett gelöscht, weil du dort
             allein bist — samt Belegfotos.
           </Bullet>

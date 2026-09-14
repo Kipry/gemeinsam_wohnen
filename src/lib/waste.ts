@@ -139,9 +139,3 @@ export function candidateDates(weekday: number, intervalWeeks: number, today: st
   const offset = (weekday - new Date(start * DAY_MS).getUTCDay() + 7) % 7;
   return Array.from({ length: intervalWeeks }, (_, index) => fromDay(start + offset + index * 7));
 }
-
-/** „Restmüll", „Restmüll und Papier", „Restmüll, Papier und Bio" */
-export function joinLabels(labels: string[]): string {
-  if (labels.length <= 1) return labels.join("");
-  return `${labels.slice(0, -1).join(", ")} und ${labels[labels.length - 1]}`;
-}
