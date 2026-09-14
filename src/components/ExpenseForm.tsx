@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../lib/theme";
@@ -52,6 +52,7 @@ export function ExpenseForm({
   submitLabel,
   saving,
   onSubmit,
+  extraFields,
 }: {
   members: Profile[];
   currentUserId: string;
@@ -59,6 +60,8 @@ export function ExpenseForm({
   submitLabel: string;
   saving: boolean;
   onSubmit: (values: ExpenseFormValues) => void;
+  /** Zusätzliche Felder, z.B. der Buchungstag bei festen Kosten */
+  extraFields?: ReactNode;
 }) {
   const [amount, setAmount] = useState(initial?.amountExpression ?? "");
   // Betrag ist immer das Erste — Keypad offen, solange noch keiner drinsteht
@@ -262,6 +265,8 @@ export function ExpenseForm({
                 : `${formatCents(-difference)} zu viel verteilt`}
           </Text>
         )}
+
+        {extraFields}
 
         <Input
           placeholder="Notiz (optional)"

@@ -142,6 +142,21 @@ export type ExpenseShare = {
   weight: number | null;
 };
 
+export type RecurringExpense = {
+  id: string;
+  household_id: string;
+  title: string;
+  amount_cents: number;
+  paid_by: string;
+  day_of_month: number;
+  category: string | null;
+  split_mode: "equal" | "amounts" | "weights";
+  active: boolean;
+  last_booked_on: string | null;
+  created_by: string;
+  created_at: string;
+};
+
 export type Settlement = {
   id: string;
   household_id: string;

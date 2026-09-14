@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +21,7 @@ export default function ExpensesScreen() {
   const [balances, setBalances] = useState<ExpenseBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [settling, setSettling] = useState<string | null>(null);
+  const [booked, setBooked] = useState(0);
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
@@ -43,6 +44,23 @@ export default function ExpensesScreen() {
     setBalances((balanceResult.data as ExpenseBalance[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
+
+  // Fällige feste Kosten nachbuchen, bevor der Saldo angezeigt wird
+  useEffect(() => {
+    if (!activeHousehold) return;
+    supabase
+      .rpc("book_due_recurring", { p_household_id: activeHousehold.id })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error(error);
+          return;
+        }
+        if (typeof data === "number" && data > 0) {
+          setBooked(data);
+        }
+        load();
+      });
+  }, [activeHousehold, load]);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,6 +112,18 @@ export default function ExpensesScreen() {
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 90 }}
         ListHeaderComponent={
           <View style={{ gap: 10, marginBottom: 6 }}>
+            {booked > 0 && (
+              <TouchableOpacity onPress={() => router.push("/recurring")}>
+                <Card style={styles.bookedCard}>
+                  <Ionicons name="repeat" size={18} color={colors.primary} />
+                  <Text style={styles.bookedText}>
+                    {booked === 1 ? "1 feste Kosten-Buchung" : `${booked} feste Kosten-Buchungen`}{" "}
+                    ergänzt
+                  </Text>
+                </Card>
+              </TouchableOpacity>
+            )}
+
             <Card>
               <Text style={styles.balanceLabel}>Dein Saldo</Text>
               <Text
@@ -175,6 +205,8 @@ export default function ExpensesScreen() {
 }
 
 const styles = StyleSheet.create({
+  bookedCard: { flexDirection: "row", alignItems: "center", gap: 8 },
+  bookedText: { flex: 1, fontSize: 13, color: colors.text },
   balanceLabel: { fontSize: 13, color: colors.subtext },
   balanceValue: { fontSize: 30, fontWeight: "700" },
   balanceHint: { fontSize: 13, color: colors.subtext },

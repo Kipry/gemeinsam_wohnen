@@ -9,6 +9,12 @@ import { Button, Card, SectionTitle } from "../../src/components/ui";
 
 const LINKS = [
   { href: "/stats", icon: "stats-chart", title: "Statistik", subtitle: "Wer hat wie viel gemacht" },
+  {
+    href: "/recurring",
+    icon: "repeat",
+    title: "Feste Kosten",
+    subtitle: "Miete, Strom, Streaming",
+  },
   { href: "/teams", icon: "people", title: "Teams", subtitle: "Putz-Teams verwalten" },
   { href: "/absences", icon: "airplane", title: "Abwesenheiten", subtitle: "Urlaub & Wochenenden" },
 ] as const;
