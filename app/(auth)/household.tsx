@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -13,12 +14,20 @@ import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { colors } from "../../src/lib/theme";
 import type { Household } from "../../src/types/database";
+import { PENDING_INVITE_KEY } from "../join";
 
 export default function HouseholdSetup() {
   const { session } = useAuth();
   const { activeHousehold, refresh, setActiveHousehold } = useHousehold();
   const [name, setName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+
+  // Kam der Nutzer über einen Einladungslink, steht der Code schon bereit
+  useEffect(() => {
+    AsyncStorage.getItem(PENDING_INVITE_KEY).then((pending) => {
+      if (pending) setInviteCode(pending);
+    });
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -60,6 +69,7 @@ export default function HouseholdSetup() {
       return;
     }
 
+    await AsyncStorage.removeItem(PENDING_INVITE_KEY);
     await refresh();
     setActiveHousehold(data as Household);
   };

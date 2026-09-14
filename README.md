@@ -10,14 +10,15 @@ Fairness-Statistik (wer hat wie viel im Haushalt gemacht).
 | Bereich | Was drin ist |
 | --- | --- |
 | **Login** | E-Mail + Passwort, „Mit Apple anmelden" (iOS) |
-| **WGs** | WG erstellen oder per 6-stelligem Einladungscode beitreten; ein Account kann in mehreren WGs sein |
+| **WGs** | WG erstellen oder beitreten — per Einladungslink, QR-Code oder 6-stelligem Code. Ein Account kann in mehreren WGs sein |
 | **Putzplan** | Wiederkehrende Aufgaben mit Punkten, Intervall und optional festem Wochentag. Zuteilung wahlweise: *wer mag*, *reihum an Personen*, *reihum an Teams*, *feste Person*. Termine werden vier Wochen im Voraus geplant — Ansicht „Plan" zeigt sie nach Wochen gruppiert. Vorlagen für die häufigsten WG-Aufgaben. Abhaken ist rückgängig zu machen, Aufgaben lassen sich bearbeiten, pausieren und löschen |
 | **Teams** | Putz-Teams anlegen und Mitglieder zuordnen — Aufgaben können reihum an ganze Teams gehen |
 | **Tracking** | Statistik pro Person: erledigte Aufgaben, Punkte, Pünktlichkeitsquote, offene und überfällige Zuweisungen, Vergleich zum WG-Durchschnitt |
 | **Kosten** | Ausgaben mit eingebautem Rechen-Keypad erfassen („12,50+8,30" ergibt live 20,80 €). Aufteilung gleichmäßig, mit festen Beträgen oder nach Anteilen (1:2 bei ungleich großen Zimmern). Beteiligte per Häkchen, Kategorie-Chips. Saldo pro Person, Vorschlag „wer zahlt wem" mit möglichst wenigen Überweisungen. Ausgaben lassen sich öffnen, korrigieren und löschen |
-| **Einkauf** | Liste nach Regalreihenfolge sortiert, Kategorie wird beim Tippen geraten. Vorschläge aus der WG-Historie, Dublettenerkennung, Mengen-Stepper, Realtime-Sync, Löschen mit Rückgängig |
+| **Einkauf** | Liste nach Regalreihenfolge sortiert, Kategorie wird beim Tippen geraten. Vorschläge aus der WG-Historie, Dublettenerkennung, Mengen-Stepper, Realtime-Sync, Löschen mit Rückgängig. „Ich kauf ein" öffnet eine Einkaufs-Sitzung; am Ende wird daraus mit einem Betrag eine geteilte Ausgabe — ohne alles zweimal zu tippen |
+| **Feste Kosten** | Miete, Strom, Streaming einmal anlegen; die App bucht die Ausgabe monatlich selbst und holt verpasste Monate nach |
 | **Abwesenheiten** | Melden per Chip (Heute, Morgen, Wochenende, nächste Woche) oder eigener Zeitraum. Abwesende werden aus geplanten Rotations-Terminen herausgenommen und der weitere Plan neu verteilt, damit der Einspringer nicht mehrfach hintereinander dran ist |
-| **Chat** | WG-interner Realtime-Chat |
+| **Chat** | Pinnwand statt Messenger: erledigte Aufgaben, neue Ausgaben und Abwesenheiten erscheinen als Ereigniskarte im Verlauf. Aushänge kleben oben, bis alle „Verstanden" getippt haben; Bitten haben einen „Mach ich"-Knopf |
 
 ## Setup
 

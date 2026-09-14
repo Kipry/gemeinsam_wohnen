@@ -25,15 +25,20 @@ export default function MoreScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Card>
-        <Text style={styles.householdName}>{activeHousehold?.name}</Text>
-        <Text style={styles.muted}>
-          {members.length} {members.length === 1 ? "Mitglied" : "Mitglieder"}
-        </Text>
-        <Text style={styles.codeLabel}>Einladungscode</Text>
-        <Text style={styles.code}>{activeHousehold?.invite_code}</Text>
-        <Text style={styles.muted}>Teile den Code mit neuen Mitbewohnern.</Text>
-      </Card>
+      <TouchableOpacity onPress={() => router.push("/invite")}>
+        <Card>
+          <Text style={styles.householdName}>{activeHousehold?.name}</Text>
+          <Text style={styles.muted}>
+            {members.length} {members.length === 1 ? "Mitglied" : "Mitglieder"}
+          </Text>
+          <Text style={styles.codeLabel}>Einladungscode</Text>
+          <Text style={styles.code}>{activeHousehold?.invite_code}</Text>
+          <View style={styles.inviteRow}>
+            <Ionicons name="share-outline" size={16} color={colors.primary} />
+            <Text style={styles.inviteText}>Mitbewohner einladen — Link oder QR-Code</Text>
+          </View>
+        </Card>
+      </TouchableOpacity>
 
       {LINKS.map((link) => (
         <TouchableOpacity key={link.href} onPress={() => router.push(link.href)}>
@@ -83,6 +88,8 @@ const styles = StyleSheet.create({
   muted: { fontSize: 13, color: colors.subtext },
   codeLabel: { fontSize: 12, color: colors.subtext, marginTop: 8 },
   code: { fontSize: 26, fontWeight: "700", color: colors.primary, letterSpacing: 3 },
+  inviteRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
+  inviteText: { fontSize: 13, color: colors.primary, fontWeight: "600" },
   linkCard: { flexDirection: "row", alignItems: "center", gap: 12 },
   linkTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
   householdRow: {
