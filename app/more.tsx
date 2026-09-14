@@ -1,11 +1,11 @@
 import { router } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "../../src/lib/supabase";
-import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
-import { colors } from "../../src/lib/theme";
-import { Button, Card, SectionTitle } from "../../src/components/ui";
+import { supabase } from "../src/lib/supabase";
+import { useHousehold } from "../src/lib/HouseholdProvider";
+import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
+import { colors } from "../src/lib/theme";
+import { Button, Card, SectionTitle } from "../src/components/ui";
 
 const LINKS = [
   { href: "/stats", icon: "stats-chart", title: "Statistik", subtitle: "Wer hat wie viel gemacht" },
@@ -16,7 +16,6 @@ const LINKS = [
     subtitle: "Miete, Strom, Streaming",
   },
   { href: "/teams", icon: "people", title: "Teams", subtitle: "Putz-Teams verwalten" },
-  { href: "/absences", icon: "airplane", title: "Abwesenheiten", subtitle: "Urlaub & Wochenenden" },
 ] as const;
 
 export default function MoreScreen() {

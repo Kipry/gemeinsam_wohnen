@@ -1,6 +1,6 @@
 # Gemeinsam Wohnen
 
-WG-App für Putzplan, Einkaufsliste, Kostenaufteilung, Abwesenheiten, Chat und eine
+WG-App für Putzplan, Einkaufsliste, Kostenaufteilung, Kalender, Chat und eine
 Fairness-Statistik (wer hat wie viel im Haushalt gemacht).
 
 **Stack:** Expo (React Native, TypeScript) + Supabase (Postgres, Auth, Realtime).
@@ -17,8 +17,8 @@ Fairness-Statistik (wer hat wie viel im Haushalt gemacht).
 | **Kosten** | Ausgaben mit eingebautem Rechen-Keypad erfassen („12,50+8,30" ergibt live 20,80 €). Aufteilung gleichmäßig, mit festen Beträgen oder nach Anteilen (1:2 bei ungleich großen Zimmern). Beteiligte per Häkchen, Kategorie-Chips. Saldo pro Person, Vorschlag „wer zahlt wem" mit möglichst wenigen Überweisungen. Ausgaben lassen sich öffnen, korrigieren und löschen |
 | **Einkauf** | Liste nach Regalreihenfolge sortiert, Kategorie wird beim Tippen geraten. Vorschläge aus der WG-Historie, Dublettenerkennung, Mengen-Stepper, Realtime-Sync, Löschen mit Rückgängig. „Ich kauf ein" öffnet eine Einkaufs-Sitzung; am Ende wird daraus mit einem Betrag eine geteilte Ausgabe — ohne alles zweimal zu tippen |
 | **Feste Kosten** | Miete, Strom, Streaming einmal anlegen; die App bucht die Ausgabe monatlich selbst und holt verpasste Monate nach |
-| **Abwesenheiten** | Melden per Chip (Heute, Morgen, Wochenende, nächste Woche) oder eigener Zeitraum. Abwesende werden aus geplanten Rotations-Terminen herausgenommen und der weitere Plan neu verteilt, damit der Einspringer nicht mehrfach hintereinander dran ist |
-| **Chat** | Pinnwand statt Messenger: erledigte Aufgaben, neue Ausgaben und Abwesenheiten erscheinen als Ereigniskarte im Verlauf. Aushänge kleben oben, bis alle „Verstanden" getippt haben; Bitten haben einen „Mach ich"-Knopf |
+| **Kalender** | Monatsansicht mit gemeinsamen Terminen (Termin, WG-Abend, Besuch, Handwerker, Geburtstag), Abwesenheiten und den eigenen Putzaufgaben. Termine mit Uhrzeit oder ganztägig, auch mehrtägig, mit Zusage-Liste — beim Handwerker heißt die Zusage „Ich mache auf". Abwesenheit per Chip für den angetippten Tag, Heute, Morgen, Wochenende oder nächste Woche; Abwesende werden aus geplanten Rotations-Terminen herausgenommen und der weitere Plan neu verteilt |
+| **Chat** | Pinnwand statt Messenger: erledigte Aufgaben, neue Ausgaben, Termine und Abwesenheiten erscheinen als Ereigniskarte im Verlauf. Aushänge kleben oben, bis alle „Verstanden" getippt haben; Bitten haben einen „Mach ich"-Knopf |
 
 ## Setup
 
@@ -74,6 +74,7 @@ profiles ─┬─ household_members ─── households
           │                            │        └── task_occurrences   (Termine + Erledigung)
           │                            ├── shopping_items
           │                            ├── absences
+          │                            ├── calendar_events ── calendar_event_attendees
           │                            ├── chat_messages
           │                            └── expenses ── expense_shares
           └────────────────────────────── settlements
@@ -101,10 +102,11 @@ einschalten.
 ```
 app/                 Screens (Expo Router, dateibasiertes Routing)
   (auth)/            Login, WG erstellen/beitreten
-  (tabs)/            Putzplan, Einkauf, Kosten, Chat, Mehr
+  (tabs)/            Putzplan, Einkauf, Kosten, Kalender, Chat ("Mehr" über das Profil-Symbol oben rechts)
   new-task.tsx       Aufgabe anlegen (inkl. Rotationsreihenfolge)
   new-expense.tsx    Ausgabe anlegen (inkl. Aufteilung)
-  teams.tsx, stats.tsx, absences.tsx
+  new-event.tsx, event/[id].tsx, new-absence.tsx
+  more.tsx, teams.tsx, stats.tsx
 src/components/ui.tsx  Gemeinsame UI-Bausteine
 src/lib/             Supabase-Client, Auth-/Household-Context, Geld-Helfer, Theme
 src/types/           TypeScript-Typen der DB-Tabellen
@@ -115,5 +117,4 @@ supabase/migrations/ Datenbankschema
 
 - Push-Benachrichtigungen bei fälligen Aufgaben und neuen Nachrichten
 - Foto zur Ausgabe (Kassenbon) hochladen
-- Aufgaben-Termine per Cron-Job vorausplanen statt erst beim Abhaken
 - Monatsrückblick: Punkte und Kosten pro Person

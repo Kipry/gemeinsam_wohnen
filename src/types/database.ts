@@ -110,6 +110,31 @@ export type Absence = {
   created_at: string;
 };
 
+export type EventKind = "termin" | "wg_abend" | "besuch" | "handwerker" | "geburtstag";
+
+export type CalendarEvent = {
+  id: string;
+  household_id: string;
+  kind: EventKind;
+  title: string;
+  note: string | null;
+  starts_on: string;
+  ends_on: string;
+  /** null = ganztägig */
+  start_time: string | null;
+  end_time: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string | null;
+};
+
+export type CalendarEventAttendee = {
+  event_id: string;
+  user_id: string;
+  status: "yes" | "no";
+  responded_at: string;
+};
+
 export type ChatKind = "message" | "event" | "announcement" | "request";
 
 export type ChatMessage = {

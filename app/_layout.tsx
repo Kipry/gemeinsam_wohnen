@@ -34,7 +34,16 @@ export default function RootLayout() {
           <Stack.Screen name="recurring" options={{ title: "Feste Kosten" }} />
           <Stack.Screen name="invite" options={{ title: "Einladen" }} />
           <Stack.Screen name="join" options={{ headerShown: false }} />
-          <Stack.Screen name="absences" options={{ title: "Abwesenheiten" }} />
+          <Stack.Screen name="more" options={{ title: "Mehr" }} />
+          <Stack.Screen
+            name="new-event"
+            options={{ title: "Neuer Termin", presentation: "modal" }}
+          />
+          <Stack.Screen name="event/[id]" options={{ title: "Termin" }} />
+          <Stack.Screen
+            name="new-absence"
+            options={{ title: "Ich bin weg", presentation: "modal" }}
+          />
           <Stack.Screen name="teams" options={{ title: "Teams" }} />
           <Stack.Screen name="stats" options={{ title: "Statistik" }} />
         </Stack>

@@ -1,8 +1,23 @@
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, router } from "expo-router";
+import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../src/lib/theme";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
+
+// "Mehr" liegt als Symbol in der Kopfzeile statt als sechster Tab —
+// mehr als fünf Tabs werden auf dem iPhone zu eng.
+function MoreButton() {
+  return (
+    <TouchableOpacity
+      onPress={() => router.push("/more")}
+      style={{ paddingHorizontal: 16 }}
+      accessibilityLabel="Mehr"
+    >
+      <Ionicons name="person-circle-outline" size={26} color={colors.text} />
+    </TouchableOpacity>
+  );
+}
 
 export default function TabsLayout() {
   const { session } = useAuth();
@@ -19,6 +34,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerTintColor: colors.text,
+        headerRight: () => <MoreButton />,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.subtext,
       }}
@@ -27,9 +43,7 @@ export default function TabsLayout() {
         name="tasks"
         options={{
           title: "Putzplan",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="sparkles" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -47,21 +61,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="calendar"
         options={{
-          title: "Chat",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" color={color} size={size} />
-          ),
+          title: "Kalender",
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="chat"
         options={{
-          title: "Mehr",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ellipsis-horizontal" color={color} size={size} />
-          ),
+          title: "Chat",
+          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" color={color} size={size} />,
         }}
       />
     </Tabs>

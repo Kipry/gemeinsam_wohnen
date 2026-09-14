@@ -25,10 +25,13 @@ const EVENT_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   task_occurrences: "sparkles",
   expenses: "cash",
   absences: "airplane",
+  calendar_events: "calendar",
 };
 
 const EVENT_ROUTE: Record<string, (id: string) => string> = {
   expenses: (id) => `/expense/${id}`,
+  calendar_events: (id) => `/event/${id}`,
+  absences: () => "/(tabs)/calendar",
 };
 
 export default function ChatScreen() {

@@ -1,4 +1,44 @@
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const WEEKDAYS_LONG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const MONTHS = [
+  "Januar", "Februar", "März", "April", "Mai", "Juni",
+  "Juli", "August", "September", "Oktober", "November", "Dezember",
+];
+
+/** Kopfzeile des Monatsrasters, Montag zuerst */
+export const WEEKDAY_HEADER = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+/** "September 2026" — month ist 0-basiert wie bei Date */
+export function formatMonth(year: number, month: number): string {
+  return `${MONTHS[month]} ${year}`;
+}
+
+/** "Samstag, 19. September" */
+export function formatLong(iso: string): string {
+  const date = new Date(`${iso}T12:00:00`);
+  return `${WEEKDAYS_LONG[date.getDay()]}, ${date.getDate()}. ${MONTHS[date.getMonth()]}`;
+}
+
+/** "18:00:00" oder "18:00" → "18:00" */
+export function formatTime(time: string | null): string | null {
+  return time ? time.slice(0, 5) : null;
+}
+
+/**
+ * 42 Tage (6 Wochen, Montag zuerst) für die Monatsansicht — inklusive der
+ * angeschnittenen Tage aus Vor- und Folgemonat, damit das Raster nie springt.
+ */
+export function monthGrid(year: number, month: number): string[] {
+  const first = toISO(new Date(year, month, 1, 12));
+  const start = startOfWeek(first);
+  return Array.from({ length: 42 }, (_, index) => addDays(start, index));
+}
+
+/** Liegt das Datum im angegebenen Monat? */
+export function isInMonth(iso: string, year: number, month: number): boolean {
+  const date = new Date(`${iso}T12:00:00`);
+  return date.getFullYear() === year && date.getMonth() === month;
+}
 
 export function todayISO(): string {
   return toISO(new Date());
