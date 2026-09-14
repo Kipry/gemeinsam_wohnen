@@ -8,6 +8,7 @@ import { useHousehold } from "../src/lib/HouseholdProvider";
 import { colors } from "../src/lib/theme";
 import { addDays, todayISO } from "../src/lib/dates";
 import { TEMPLATES } from "../src/components/TaskForm";
+import { intervalLabel } from "../src/lib/taskLabels";
 import { Button, ErrorText, Input, Loading, Muted } from "../src/components/ui";
 
 const PRESELECTED = ["Müll rausbringen", "Bad putzen", "Küche putzen", "Staubsaugen"];
@@ -16,13 +17,6 @@ const PRESELECTED = ["Müll rausbringen", "Bad putzen", "Küche putzen", "Staubs
 function joinNames(names: string[]) {
   if (names.length <= 1) return names.join("");
   return `${names.slice(0, -1).join(", ")} und ${names[names.length - 1]}`;
-}
-
-function intervalLabel(days: number) {
-  if (days === 1) return "jeden Tag";
-  if (days === 7) return "jede Woche";
-  if (days === 14) return "alle zwei Wochen";
-  return `alle ${days} Tage`;
 }
 
 /**

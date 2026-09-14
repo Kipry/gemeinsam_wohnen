@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { Alert, SectionList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, SectionList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
@@ -10,13 +10,16 @@ import { usePlaceholders } from "../../src/lib/usePlaceholders";
 import { colors } from "../../src/lib/theme";
 import { addDays, formatShort, todayISO, weekLabel } from "../../src/lib/dates";
 import { Button, Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
-import type { Task, TaskOccurrence } from "../../src/types/database";
+import { rhythmLabel } from "../../src/lib/taskLabels";
+import type { Task, TaskOccurrence, TaskRotationEntry } from "../../src/types/database";
 
 type Occurrence = TaskOccurrence & {
   tasks: Pick<Task, "title" | "points" | "assignment_mode">;
 };
 
-type TaskView = "alle" | "meine" | "plan";
+type TaskView = "alle" | "meine" | "plan" | "routinen";
+
+type Routine = Task & { task_rotation: TaskRotationEntry[] };
 
 function formatDue(dueDate: string): string {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -39,6 +42,7 @@ export default function TasksScreen() {
   const { teams } = useTeams(activeHousehold?.id);
   const { placeholders } = usePlaceholders(activeHousehold?.id);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
+  const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<TaskView>("alle");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -46,15 +50,24 @@ export default function TasksScreen() {
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
-    const { data, error } = await supabase
-      .from("task_occurrences")
-      .select("*, tasks(title, points, assignment_mode)")
-      .eq("household_id", activeHousehold.id)
-      .eq("status", "open")
-      .order("due_date", { ascending: true });
+    const [occurrenceResult, routineResult] = await Promise.all([
+      supabase
+        .from("task_occurrences")
+        .select("*, tasks(title, points, assignment_mode)")
+        .eq("household_id", activeHousehold.id)
+        .eq("status", "open")
+        .order("due_date", { ascending: true }),
+      supabase
+        .from("tasks")
+        .select("*, task_rotation(*)")
+        .eq("household_id", activeHousehold.id)
+        .order("title"),
+    ]);
 
-    if (error) console.error(error);
-    setOccurrences((data as Occurrence[]) ?? []);
+    if (occurrenceResult.error) console.error(occurrenceResult.error);
+    if (routineResult.error) console.error(routineResult.error);
+    setOccurrences((occurrenceResult.data as Occurrence[]) ?? []);
+    setRoutines((routineResult.data as Routine[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
 
@@ -125,6 +138,52 @@ export default function TasksScreen() {
     return "Wer mag";
   };
 
+  // Nächster offener Termin je Aufgabe (occurrences sind nach Datum sortiert)
+  const nextByTask = useMemo(() => {
+    const next = new Map<string, Occurrence>();
+    for (const occurrence of occurrences) {
+      if (!next.has(occurrence.task_id)) next.set(occurrence.task_id, occurrence);
+    }
+    return next;
+  }, [occurrences]);
+
+  // Aktive nach nächster Fälligkeit, pausierte ans Ende
+  const sortedRoutines = useMemo(
+    () =>
+      [...routines].sort((a, b) => {
+        if (a.active !== b.active) return a.active ? -1 : 1;
+        const dueA = nextByTask.get(a.id)?.due_date ?? "9999-12-31";
+        const dueB = nextByTask.get(b.id)?.due_date ?? "9999-12-31";
+        return dueA.localeCompare(dueB) || a.title.localeCompare(b.title);
+      }),
+    [routines, nextByTask]
+  );
+
+  const rotationName = (entry: TaskRotationEntry) => {
+    if (entry.user_id) {
+      return entry.user_id === session?.user.id
+        ? "Du"
+        : members.find((member) => member.id === entry.user_id)?.full_name ?? "Ehemalig";
+    }
+    if (entry.team_id) {
+      return `Team ${teams.find((team) => team.id === entry.team_id)?.name ?? "?"}`;
+    }
+    return placeholders.find((placeholder) => placeholder.id === entry.placeholder_id)?.name ?? "?";
+  };
+
+  const assignmentSummary = (routine: Routine) => {
+    if (routine.assignment_mode === "anyone") return "Wer mag";
+    if (routine.assignment_mode === "fixed") {
+      const fixed =
+        routine.fixed_assignee === session?.user.id
+          ? "Du"
+          : members.find((member) => member.id === routine.fixed_assignee)?.full_name ?? "?";
+      return `Immer: ${fixed}`;
+    }
+    const order = [...routine.task_rotation].sort((a, b) => a.position - b.position);
+    return order.length > 0 ? `Reihum: ${order.map(rotationName).join(" → ")}` : "Reihum (niemand eingetragen)";
+  };
+
   const markDone = async (occurrence: Occurrence) => {
     setBusyId(occurrence.id);
     const { error } = await supabase.rpc("complete_occurrence", {
@@ -165,8 +224,56 @@ export default function TasksScreen() {
         <Chip label="Alle" selected={view === "alle"} onPress={() => setView("alle")} />
         <Chip label="Für mich" selected={view === "meine"} onPress={() => setView("meine")} />
         <Chip label="Plan" selected={view === "plan"} onPress={() => setView("plan")} />
+        <Chip label="Routinen" selected={view === "routinen"} onPress={() => setView("routinen")} />
       </View>
 
+      {view === "routinen" ? (
+        <FlatList
+          data={sortedRoutines}
+          keyExtractor={(routine) => routine.id}
+          contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 90, gap: 10 }}
+          ListHeaderComponent={
+            routines.length > 0 ? (
+              <Text style={styles.routineCount}>
+                {routines.length} {routines.length === 1 ? "Routine" : "Routinen"}
+                {routines.some((routine) => !routine.active)
+                  ? ` · ${routines.filter((routine) => !routine.active).length} pausiert`
+                  : ""}
+              </Text>
+            ) : null
+          }
+          ListEmptyComponent={<Empty>Noch keine Routinen. Leg unten eine an.</Empty>}
+          renderItem={({ item: routine }) => {
+            const next = nextByTask.get(routine.id);
+            return (
+              <TouchableOpacity
+                style={[styles.routineCard, !routine.active && styles.routinePaused]}
+                onPress={() => router.push(`/task/${routine.id}`)}
+              >
+                <View style={styles.routineHeader}>
+                  <Text style={styles.title}>{routine.title}</Text>
+                  {routine.active ? (
+                    <Text style={styles.meta}>{routine.points} Pkt</Text>
+                  ) : (
+                    <View style={styles.pausedBadge}>
+                      <Text style={styles.pausedBadgeText}>Pausiert</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.meta}>{rhythmLabel(routine.interval_days, routine.weekday)}</Text>
+                <Text style={styles.meta} numberOfLines={2}>
+                  {assignmentSummary(routine)}
+                </Text>
+                {routine.active && next && (
+                  <Text style={styles.routineNext}>
+                    Als Nächstes: {formatDue(next.due_date)} · {assigneeLabel(next)}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+        />
+      ) : (
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -200,6 +307,7 @@ export default function TasksScreen() {
           );
         }}
       />
+      )}
 
       <TouchableOpacity style={styles.fab} onPress={() => router.push("/new-task")}>
         <Text style={styles.fabText}>+</Text>
@@ -236,8 +344,27 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardOverdue: { borderColor: colors.danger },
-  title: { fontSize: 16, fontWeight: "600", color: colors.text },
+  title: { fontSize: 16, fontWeight: "600", color: colors.text, flexShrink: 1 },
   meta: { fontSize: 13, color: colors.subtext },
+  routineCount: { fontSize: 13, color: colors.subtext, paddingBottom: 2 },
+  routineCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderColor: colors.border,
+    borderWidth: 1,
+    padding: 14,
+    gap: 3,
+  },
+  routinePaused: { opacity: 0.6 },
+  routineHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+  routineNext: { fontSize: 13, color: colors.text, marginTop: 4 },
+  pausedBadge: {
+    borderRadius: 999,
+    backgroundColor: colors.border,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  pausedBadgeText: { fontSize: 12, fontWeight: "600", color: colors.subtext },
   fab: {
     position: "absolute",
     right: 20,
