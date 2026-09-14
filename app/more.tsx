@@ -8,6 +8,8 @@ import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { usePlaceholders } from "../src/lib/usePlaceholders";
 import { colors } from "../src/lib/theme";
+import { formatCents } from "../src/lib/money";
+import { signOutToLogin } from "../src/lib/signOut";
 import { Button, Card, Input, SectionTitle } from "../src/components/ui";
 
 const LINKS = [
@@ -29,7 +31,7 @@ const LINKS = [
 
 export default function MoreScreen() {
   const { session } = useAuth();
-  const { activeHousehold, households, setActiveHousehold } = useHousehold();
+  const { activeHousehold, households, setActiveHousehold, refresh } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { placeholders, refresh: refreshPlaceholders } = usePlaceholders(activeHousehold?.id);
   const [newName, setNewName] = useState("");
@@ -62,6 +64,46 @@ export default function MoreScreen() {
             const { error } = await supabase.rpc("remove_placeholder", { p_placeholder_id: id });
             if (error) Alert.alert("Fehler", error.message);
             refreshPlaceholders();
+          },
+        },
+      ]
+    );
+  };
+
+  const leaveHousehold = async () => {
+    if (!activeHousehold || !session) return;
+    const household = activeHousehold;
+
+    const { data } = await supabase
+      .from("expense_balance_view")
+      .select("net_cents")
+      .eq("household_id", household.id)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    const net = data?.net_cents ?? 0;
+    const balanceHint =
+      net > 0
+        ? `\n\nDu bekommst noch ${formatCents(net)} — am besten vorher ausgleichen.`
+        : net < 0
+          ? `\n\nDu schuldest noch ${formatCents(-net)} — am besten vorher ausgleichen.`
+          : "";
+
+    Alert.alert(
+      `„${household.name}" verlassen?`,
+      `Deine Putz-Plätze werden unter den anderen neu verteilt. Ausgaben bleiben für alle sichtbar.${balanceHint}`,
+      [
+        { text: "Abbrechen", style: "cancel" },
+        {
+          text: "Verlassen",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase.rpc("leave_household", { p_household_id: household.id });
+            if (error) {
+              Alert.alert("Fehler", error.message);
+              return;
+            }
+            await refresh();
+            router.back();
           },
         },
       ]
@@ -155,7 +197,14 @@ export default function MoreScreen() {
         variant="secondary"
         onPress={() => router.push("/(auth)/household")}
       />
-      <Button title="Abmelden" variant="danger" onPress={() => supabase.auth.signOut()} />
+      {members.length > 1 && (
+        <Button title={`„${activeHousehold?.name}" verlassen`} variant="secondary" onPress={leaveHousehold} />
+      )}
+      <Button title="Abmelden" variant="danger" onPress={() => signOutToLogin()} />
+
+      <TouchableOpacity style={styles.deleteAccount} onPress={() => router.push("/delete-account")}>
+        <Text style={styles.deleteAccountText}>Konto löschen</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -177,6 +226,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   active: { color: colors.primary, fontWeight: "600" },
+  deleteAccount: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 16 },
+  deleteAccountText: { fontSize: 14, color: colors.subtext, textDecorationLine: "underline" },
   placeholderWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   placeholderChip: {
     flexDirection: "row",

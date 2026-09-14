@@ -1,0 +1,5 @@
+# Nur für Edge-Function-Einstellungen; das Projekt läuft gehostet.
+
+[functions.delete-account]
+# Die Funktion prüft das Nutzer-Token selbst (auth.getUser)
+verify_jwt = false

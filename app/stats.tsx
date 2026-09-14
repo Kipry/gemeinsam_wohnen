@@ -4,7 +4,7 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
-import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
+import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { colors } from "../src/lib/theme";
 import { Card, Empty, Loading, Muted, Screen } from "../src/components/ui";
 import type { ChoreStats } from "../src/types/database";
@@ -59,7 +59,7 @@ export default function StatsScreen() {
           const name =
             item.user_id === session?.user.id
               ? "Du"
-              : members.find((m) => m.id === item.user_id)?.full_name ?? "?";
+              : members.find((m) => m.id === item.user_id)?.full_name ?? FORMER_MEMBER;
           const diff = item.points_done - avgPoints;
           const onTimeRate =
             item.tasks_done > 0 ? Math.round((item.done_on_time / item.tasks_done) * 100) : null;

@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
+import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
 import { colors } from "../../src/lib/theme";
 import {
@@ -163,7 +163,7 @@ export default function CalendarScreen() {
   );
 
   const nameFor = (userId: string) =>
-    userId === session?.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? "?";
+    userId === session?.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? FORMER_MEMBER;
 
   const dayInfo = useCallback(
     (iso: string) => ({
@@ -196,7 +196,7 @@ export default function CalendarScreen() {
         label:
           absence.user_id === session?.user.id
             ? "Du"
-            : members.find((member) => member.id === absence.user_id)?.full_name ?? "?",
+            : members.find((member) => member.id === absence.user_id)?.full_name ?? FORMER_MEMBER,
       })),
     ],
     [events, absences, members, session]

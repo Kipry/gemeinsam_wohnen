@@ -5,6 +5,8 @@ export type Profile = {
   full_name: string;
   avatar_url: string | null;
   created_at: string;
+  /** Gesetzt, wenn das Konto gelöscht wurde (Profil bleibt anonymisiert) */
+  deleted_at: string | null;
 };
 
 export type Household = {

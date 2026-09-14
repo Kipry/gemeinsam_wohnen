@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import type { Profile } from "../types/database";
 
+/** Anzeigename für Personen, die ausgezogen sind oder ihr Konto gelöscht haben */
+export const FORMER_MEMBER = "Ehemaliges Mitglied";
+
 export function useHouseholdMembers(householdId: string | undefined) {
   const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);

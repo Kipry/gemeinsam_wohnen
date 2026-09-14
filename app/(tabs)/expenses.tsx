@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
+import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { colors } from "../../src/lib/theme";
 import { formatCents, suggestSettlements } from "../../src/lib/money";
 import { Button, Card, Empty, Loading, Screen, SectionTitle } from "../../src/components/ui";
@@ -69,7 +69,7 @@ export default function ExpensesScreen() {
   );
 
   const nameFor = (userId: string) =>
-    userId === session?.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? "?";
+    userId === session?.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? FORMER_MEMBER;
 
   const myBalance = balances.find((b) => b.user_id === session?.user.id)?.net_cents ?? 0;
 

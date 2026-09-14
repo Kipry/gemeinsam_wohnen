@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { colors } from "../lib/theme";
+import { FORMER_MEMBER } from "../lib/useHouseholdMembers";
 import { Button, Chip, ErrorText, Input, Muted, SectionTitle } from "./ui";
 import type { AssignmentMode, HouseholdPlaceholder, Profile } from "../types/database";
 import type { TeamWithMembers } from "../lib/useTeams";
@@ -97,7 +98,7 @@ export function TaskForm({
   const [error, setError] = useState<string | null>(null);
 
   const nameFor = (id: string) =>
-    id === currentUserId ? "Du" : members.find((m) => m.id === id)?.full_name ?? "?";
+    id === currentUserId ? "Du" : members.find((m) => m.id === id)?.full_name ?? FORMER_MEMBER;
 
   const applyTemplate = (template: (typeof TEMPLATES)[number]) => {
     setTitle(template.title);

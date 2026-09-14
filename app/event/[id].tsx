@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
+import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { colors } from "../../src/lib/theme";
 import { formatLong, formatShort, formatTime } from "../../src/lib/dates";
 import { EVENT_KINDS } from "../../src/lib/eventKinds";
@@ -52,7 +52,7 @@ export default function EventDetail() {
   const open = members.filter((member) => !attendees.some((entry) => entry.user_id === member.id));
 
   const nameFor = (userId: string) =>
-    userId === session.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? "?";
+    userId === session.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? FORMER_MEMBER;
 
   const respond = async (status: "yes" | "no") => {
     // Nochmal auf dieselbe Antwort tippen nimmt sie zurück

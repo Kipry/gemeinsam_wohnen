@@ -49,6 +49,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="teams" options={{ title: "Teams" }} />
           <Stack.Screen name="stats" options={{ title: "Statistik" }} />
+          <Stack.Screen name="delete-account" options={{ title: "Konto löschen" }} />
         </Stack>
       </HouseholdProvider>
     </AuthProvider>

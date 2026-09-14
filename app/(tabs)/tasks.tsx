@@ -4,7 +4,7 @@ import { Alert, FlatList, SectionList, StyleSheet, Text, TouchableOpacity, View 
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
+import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
 import { usePlaceholders } from "../../src/lib/usePlaceholders";
 import { colors } from "../../src/lib/theme";
@@ -125,7 +125,7 @@ export default function TasksScreen() {
   const assigneeLabel = (occurrence: Occurrence) => {
     if (occurrence.assigned_to) {
       const isMe = occurrence.assigned_to === session?.user.id;
-      return isMe ? "Du bist dran" : members.find((m) => m.id === occurrence.assigned_to)?.full_name ?? "?";
+      return isMe ? "Du bist dran" : members.find((m) => m.id === occurrence.assigned_to)?.full_name ?? FORMER_MEMBER;
     }
     if (occurrence.assigned_team_id) {
       const team = teams.find((t) => t.id === occurrence.assigned_team_id);
@@ -163,7 +163,7 @@ export default function TasksScreen() {
     if (entry.user_id) {
       return entry.user_id === session?.user.id
         ? "Du"
-        : members.find((member) => member.id === entry.user_id)?.full_name ?? "Ehemalig";
+        : members.find((member) => member.id === entry.user_id)?.full_name ?? FORMER_MEMBER;
     }
     if (entry.team_id) {
       return `Team ${teams.find((team) => team.id === entry.team_id)?.name ?? "?"}`;
@@ -177,7 +177,7 @@ export default function TasksScreen() {
       const fixed =
         routine.fixed_assignee === session?.user.id
           ? "Du"
-          : members.find((member) => member.id === routine.fixed_assignee)?.full_name ?? "?";
+          : members.find((member) => member.id === routine.fixed_assignee)?.full_name ?? FORMER_MEMBER;
       return `Immer: ${fixed}`;
     }
     const order = [...routine.task_rotation].sort((a, b) => a.position - b.position);

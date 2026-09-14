@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../lib/theme";
+import { FORMER_MEMBER } from "../lib/useHouseholdMembers";
 import { evaluateAmountExpression } from "../lib/calc";
 import { formatCents, parseAmountToCents, splitByWeights, splitEqually } from "../lib/money";
 import { AmountDisplay, AmountKeypad } from "./AmountKeypad";
@@ -96,7 +97,7 @@ export function ExpenseForm({
   const difference = totalCents === null ? 0 : totalCents - sharesSum;
 
   const nameFor = (id: string) =>
-    id === currentUserId ? "Du" : members.find((m) => m.id === id)?.full_name ?? "?";
+    id === currentUserId ? "Du" : members.find((m) => m.id === id)?.full_name ?? FORMER_MEMBER;
 
   const toggleParticipant = (id: string) => {
     const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];

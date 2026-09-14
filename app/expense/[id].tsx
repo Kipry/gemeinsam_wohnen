@@ -4,7 +4,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
+import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { colors } from "../../src/lib/theme";
 import { centsToInput, formatCents } from "../../src/lib/money";
 import {
@@ -55,7 +55,7 @@ export default function ExpenseDetail() {
   if (!expense || !session) return <Loading />;
 
   const nameFor = (userId: string) =>
-    userId === session.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? "?";
+    userId === session.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? FORMER_MEMBER;
 
   const save = async (values: ExpenseFormValues) => {
     setSaving(true);
