@@ -2,6 +2,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { Alert } from "react-native";
 import { supabase } from "../src/lib/supabase";
+import { hapticSuccess } from "../src/lib/haptics";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
@@ -43,6 +44,7 @@ export default function NewExpense() {
       setError(rpcError?.message ?? "Ausgabe konnte nicht gespeichert werden");
       return;
     }
+    hapticSuccess();
 
     const expenseId = (data as { id: string }).id;
 

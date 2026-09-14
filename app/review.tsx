@@ -3,6 +3,7 @@ import { useFocusEffect } from "expo-router";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
+import { useRefresh } from "../src/lib/useRefresh";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
@@ -16,7 +17,7 @@ import {
   type ReviewChore,
   type ReviewExpense,
 } from "../src/lib/monthReview";
-import { Card, Muted } from "../src/components/ui";
+import { Card, Muted, PullToRefresh } from "../src/components/ui";
 
 export default function MonthReview() {
   const styles = useStyles();
@@ -80,6 +81,7 @@ export default function MonthReview() {
     setChores((choreResult.data as unknown as ReviewChore[]) ?? []);
     setLoading(false);
   }, [activeHousehold, cursor]);
+  const { refreshing, onRefresh } = useRefresh(load);
 
   useFocusEffect(
     useCallback(() => {
@@ -114,7 +116,11 @@ export default function MonthReview() {
   const maxPoints = Math.max(1, ...chorePeople.map(([, entry]) => entry.points));
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View style={styles.monthHeader}>
         <TouchableOpacity onPress={() => shiftMonth(-1)} style={styles.monthButton}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />

@@ -3,12 +3,14 @@ import { router, useFocusEffect } from "expo-router";
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
+import { useRefresh } from "../../src/lib/useRefresh";
+import { hapticSuccess } from "../../src/lib/haptics";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { formatCents, suggestSettlements } from "../../src/lib/money";
-import { Button, Card, Empty, Loading, Screen, SectionTitle } from "../../src/components/ui";
+import { Button, Card, Empty, Loading, PullToRefresh, Screen, SectionTitle } from "../../src/components/ui";
 import type { Expense, ExpenseBalance } from "../../src/types/database";
 
 type ExpenseWithShares = Expense & { expense_shares: { user_id: string; share_cents: number }[] };
@@ -46,6 +48,7 @@ export default function ExpensesScreen() {
     setBalances((balanceResult.data as ExpenseBalance[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
+  const { refreshing, onRefresh } = useRefresh(load);
 
   // Fällige feste Kosten nachbuchen, bevor der Saldo angezeigt wird
   useEffect(() => {
@@ -101,6 +104,7 @@ export default function ExpensesScreen() {
       Alert.alert("Fehler", error.message);
       return;
     }
+    hapticSuccess();
     load();
   };
 
@@ -109,6 +113,7 @@ export default function ExpensesScreen() {
   return (
     <Screen>
       <FlatList
+        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
         data={expenses}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 90 }}

@@ -12,11 +12,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
+import { useRefresh } from "../../src/lib/useRefresh";
+import { hapticTap } from "../../src/lib/haptics";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { AISLE_ORDER, guessCategory, normalizeName } from "../../src/lib/shoppingCategories";
-import { Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
+import { Chip, Empty, Loading, PullToRefresh, Screen, UndoToast } from "../../src/components/ui";
 import type { ShoppingItem, ShoppingTrip } from "../../src/types/database";
 
 export default function ShoppingScreen() {
@@ -87,6 +89,7 @@ export default function ShoppingScreen() {
     setItems((data as ShoppingItem[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
+  const { refreshing, onRefresh } = useRefresh(load);
 
   // Häufig gekaufte Artikel als Vorschläge über der Tastatur
   const loadHistory = useCallback(async () => {
@@ -185,12 +188,14 @@ export default function ShoppingScreen() {
       setName(value);
       return;
     }
+    hapticTap();
     load();
   };
 
   const toggleBought = async (item: ShoppingItem) => {
     if (!session) return;
     const bought = item.status === "open";
+    if (bought) hapticTap();
 
     // Optimistisch umschalten, damit das Häkchen sofort sitzt
     setItems((prev) =>
@@ -336,6 +341,8 @@ export default function ShoppingScreen() {
       )}
 
       <SectionList
+
+        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
         sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 90 }}

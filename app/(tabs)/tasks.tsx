@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Alert, FlatList, SectionList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../src/lib/supabase";
+import { useRefresh } from "../../src/lib/useRefresh";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
@@ -9,8 +10,9 @@ import { useTeams } from "../../src/lib/useTeams";
 import { usePlaceholders } from "../../src/lib/usePlaceholders";
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { addDays, formatShort, todayISO, weekLabel } from "../../src/lib/dates";
-import { Button, Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
+import { Button, Chip, Empty, Loading, PullToRefresh, Screen, UndoToast } from "../../src/components/ui";
 import { rhythmLabel } from "../../src/lib/taskLabels";
+import { hapticSuccess, hapticTap } from "../../src/lib/haptics";
 import { PushPrompt } from "../../src/components/PushPrompt";
 import type { Task, TaskOccurrence, TaskRotationEntry } from "../../src/types/database";
 
@@ -73,6 +75,7 @@ export default function TasksScreen() {
     setRoutines((routineResult.data as Routine[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
+  const { refreshing, onRefresh } = useRefresh(load);
 
   // Plan bis zum Horizont auffüllen — ohne das würde eine liegengebliebene
   // Aufgabe die gesamte Rotation blockieren.
@@ -197,6 +200,7 @@ export default function TasksScreen() {
       Alert.alert("Fehler", error.message);
       return;
     }
+    hapticSuccess();
     setUndo({ id: occurrence.id, title: occurrence.tasks.title });
     load();
   };
@@ -209,6 +213,7 @@ export default function TasksScreen() {
       Alert.alert("Fehler", error.message);
       return;
     }
+    hapticTap();
     load();
   };
 
@@ -234,6 +239,7 @@ export default function TasksScreen() {
 
       {view === "routinen" ? (
         <FlatList
+          refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
           data={sortedRoutines}
           keyExtractor={(routine) => routine.id}
           contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 90, gap: 10 }}
@@ -280,6 +286,7 @@ export default function TasksScreen() {
         />
       ) : (
       <SectionList
+        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
         sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 90 }}

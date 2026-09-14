@@ -253,5 +253,7 @@ export type NotificationPrefs = {
   shopping: boolean;
   expenses: boolean;
   calendar: boolean;
+  /** Stunde der Putz-Erinnerung (Ortszeit); vor 12 Uhr für heute, sonst für morgen */
+  reminder_hour: number;
   updated_at: string;
 };

@@ -3,6 +3,7 @@ import { router, useFocusEffect } from "expo-router";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
+import { hapticSuccess } from "../src/lib/haptics";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
@@ -81,6 +82,7 @@ export default function FinishTrip() {
       setError(rpcError?.message ?? "Einkauf konnte nicht abgerechnet werden");
       return;
     }
+    hapticSuccess();
 
     const expenseId = (data as { id: string }).id;
 

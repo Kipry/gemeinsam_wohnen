@@ -3,6 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
+import { hapticTap } from "../../src/lib/haptics";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
@@ -57,6 +58,7 @@ export default function EventDetail() {
     userId === session.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? FORMER_MEMBER;
 
   const respond = async (status: "yes" | "no") => {
+    hapticTap();
     // Nochmal auf dieselbe Antwort tippen nimmt sie zurück
     if (myStatus === status) {
       await supabase

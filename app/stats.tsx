@@ -2,11 +2,12 @@ import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
+import { useRefresh } from "../src/lib/useRefresh";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { makeStyles, useColors } from "../src/lib/theme";
-import { Card, Empty, Loading, Muted, Screen } from "../src/components/ui";
+import { Card, Empty, Loading, Muted, PullToRefresh, Screen } from "../src/components/ui";
 import type { ChoreStats } from "../src/types/database";
 
 export default function StatsScreen() {
@@ -29,6 +30,7 @@ export default function StatsScreen() {
     setStats((data as ChoreStats[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
+  const { refreshing, onRefresh } = useRefresh(load);
 
   useFocusEffect(
     useCallback(() => {
@@ -47,6 +49,7 @@ export default function StatsScreen() {
   return (
     <Screen>
       <FlatList
+        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
         data={rows}
         keyExtractor={(item) => item.user_id}
         contentContainerStyle={{ padding: 16, gap: 12 }}

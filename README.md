@@ -21,7 +21,8 @@ Edge Functions, pg_net/pg_cron für Push).
 | **Feste Kosten** | Miete, Strom, Streaming einmal anlegen; die App bucht die Ausgabe monatlich selbst und holt verpasste Monate nach |
 | **Kalender** | Monatsansicht mit gemeinsamen Terminen (Termin, WG-Abend, Besuch, Handwerker, Geburtstag), Abwesenheiten und den eigenen Putzaufgaben. Termine mit Uhrzeit oder ganztägig, auch mehrtägig (als durchgehender Balken über die Tage), mit Zusage-Liste — beim Handwerker heißt die Zusage „Ich mache auf". Abwesenheit per Chip für den angetippten Tag, Heute, Morgen, Wochenende oder nächste Woche; Abwesende werden aus geplanten Rotations-Terminen herausgenommen und der weitere Plan neu verteilt |
 | **Chat** | Pinnwand statt Messenger: erledigte Aufgaben, neue Ausgaben, Termine und Abwesenheiten erscheinen als Ereigniskarte im Verlauf. Aushänge kleben oben, bis alle „Verstanden" getippt haben; Bitten haben einen „Mach ich"-Knopf |
-| **Mitteilungen** | Push bei Chat-Nachrichten, Aushängen und Bitten („Ben kümmert sich drum"), neuen Ausgaben mit dem eigenen Anteil, Rückzahlungen, „Ben geht einkaufen", neuen Terminen und Abwesenheiten, neuen Mitbewohnern und wenn jemand die eigene Aufgabe übernommen hat. Am Vorabend eine Erinnerung, wenn man dran ist. Jeder Bereich einzeln abschaltbar; ein Tipp öffnet den passenden Bildschirm in der richtigen WG |
+| **Mitteilungen** | Push bei Chat-Nachrichten, Aushängen und Bitten („Ben kümmert sich drum"), neuen Ausgaben mit dem eigenen Anteil, Rückzahlungen, „Ben geht einkaufen", neuen Terminen und Abwesenheiten, neuen Mitbewohnern und wenn jemand die eigene Aufgabe übernommen hat. Erinnerung, wenn man dran ist — zur selbst gewählten Uhrzeit: morgens für heute oder abends für morgen. Jeder Bereich einzeln abschaltbar; ein Tipp öffnet den passenden Bildschirm in der richtigen WG |
+| **Bedienung** | Dunkelmodus (folgt dem System), eigenes App-Icon in Hell/Dunkel/Getönt, kurzes Vibrieren beim Abhaken, Erledigen und Bezahlen, Listen per Herunterziehen aktualisieren |
 | **Konto** | WG verlassen (Putz-Plätze werden neu verteilt) und Konto löschen. Ausgaben und Salden bleiben für die anderen stimmig — statt des Namens steht dort „Ehemaliges Mitglied"; Persönliches wie Chat-Nachrichten und Abwesenheiten wird gelöscht |
 
 ## Setup
@@ -65,7 +66,8 @@ Außerdem läuft Apple-Login **nicht in Expo Go** — dafür braucht es einen De
 ### 4. Push-Benachrichtigungen
 
 Die Datenbank verschickt die Mitteilungen selbst (Trigger → `send_push` → pg_net →
-Expo-Push-API), die Vorabend-Erinnerung läuft als pg_cron-Job `putz-erinnerungen`.
+Expo-Push-API). Die Putz-Erinnerung läuft stündlich als pg_cron-Job `putz-erinnerungen` und
+erreicht jeweils die, deren gewählte Stunde gerade ist.
 Für iOS braucht der Build einen APNs-Schlüssel — `eas build` fragt beim ersten Build mit
 `expo-notifications` danach und legt ihn an. In Expo Go gibt es keinen Push-Token.
 
@@ -153,4 +155,4 @@ supabase/functions/  Edge Functions (delete-account)
 
 ## Ideen für später
 
-- Uhrzeit der Putz-Erinnerung pro Person einstellbar
+- Widget für den Homescreen: „Heute dran" auf einen Blick

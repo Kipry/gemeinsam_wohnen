@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
+import { hapticSuccess, hapticTap } from "../../src/lib/haptics";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
@@ -138,6 +139,7 @@ export default function ChatScreen() {
       Alert.alert("Nachricht nicht gesendet", error.message);
       return;
     }
+    hapticTap();
     setKind("message");
   };
 
@@ -150,11 +152,13 @@ export default function ChatScreen() {
       Alert.alert("Fehler", error.message);
       return;
     }
+    hapticTap();
     load();
   };
 
   const claimRequest = async (message: ChatMessage) => {
     if (!session) return;
+    hapticTap();
     await supabase
       .from("chat_messages")
       .update({ claimed_by: session.user.id })
@@ -163,6 +167,7 @@ export default function ChatScreen() {
   };
 
   const finishRequest = async (message: ChatMessage) => {
+    hapticSuccess();
     await supabase
       .from("chat_messages")
       .update({ done_at: new Date().toISOString() })

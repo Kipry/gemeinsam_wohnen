@@ -5,17 +5,27 @@ import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { makeStyles, useColors } from "../src/lib/theme";
 import { getPushStatus, registerPush, type PushStatus } from "../src/lib/push";
-import { Button, Card, Loading, Muted } from "../src/components/ui";
+import { Button, Card, Chip, Loading, Muted } from "../src/components/ui";
 import type { NotificationPrefs } from "../src/types/database";
 
-type Category = keyof Omit<NotificationPrefs, "user_id" | "updated_at">;
+type Category = "chores" | "chat" | "shopping" | "expenses" | "calendar";
+type Prefs = Record<Category, boolean> & { reminder_hour: number };
+
+/** Morgens erinnert an heute, abends an morgen */
+const REMINDER_HOURS = [7, 8, 9, 18, 19, 20, 21];
+
+function reminderHint(hour: number) {
+  return hour < 12
+    ? `Um ${hour} Uhr morgens an alles, was heute ansteht`
+    : `Um ${hour} Uhr am Vorabend an alles, was morgen ansteht`;
+}
 
 const CATEGORIES: { key: Category; icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string }[] = [
   {
     key: "chores",
     icon: "sparkles",
     title: "Putzplan",
-    subtitle: "Am Vorabend, wenn du dran bist – und wenn jemand deine Aufgabe übernimmt",
+    subtitle: "Erinnerung, wenn du dran bist – und wenn jemand deine Aufgabe übernimmt",
   },
   {
     key: "chat",
@@ -33,19 +43,20 @@ const CATEGORIES: { key: Category; icon: keyof typeof Ionicons.glyphMap; title: 
   { key: "calendar", icon: "calendar", title: "Kalender", subtitle: "Neue Termine und Abwesenheiten" },
 ];
 
-const DEFAULTS: Record<Category, boolean> = {
+const DEFAULTS: Prefs = {
   chores: true,
   chat: true,
   shopping: true,
   expenses: true,
   calendar: true,
+  reminder_hour: 18,
 };
 
 export default function NotificationsScreen() {
   const styles = useStyles();
   const colors = useColors();
   const { session } = useAuth();
-  const [prefs, setPrefs] = useState<Record<Category, boolean> | null>(null);
+  const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [status, setStatus] = useState<PushStatus | null>(null);
 
   const refreshStatus = useCallback(() => {
@@ -69,6 +80,7 @@ export default function NotificationsScreen() {
                 shopping: row.shopping,
                 expenses: row.expenses,
                 calendar: row.calendar,
+                reminder_hour: row.reminder_hour,
               }
             : DEFAULTS
         );
@@ -89,14 +101,13 @@ export default function NotificationsScreen() {
 
   if (!session || !prefs || !status) return <Loading />;
 
-  const toggle = async (key: Category, value: boolean) => {
-    setPrefs((current) => (current ? { ...current, [key]: value } : current));
+  const save = async (patch: Partial<Prefs>) => {
+    const previous = prefs;
+    setPrefs({ ...prefs, ...patch });
     const { error } = await supabase
       .from("notification_prefs")
-      .upsert({ user_id: session.user.id, [key]: value, updated_at: new Date().toISOString() });
-    if (error) {
-      setPrefs((current) => (current ? { ...current, [key]: !value } : current));
-    }
+      .upsert({ user_id: session.user.id, ...patch, updated_at: new Date().toISOString() });
+    if (error) setPrefs(previous);
   };
 
   const allow = async () => {
@@ -133,20 +144,34 @@ export default function NotificationsScreen() {
 
       <Card style={{ gap: 0, paddingVertical: 4 }}>
         {CATEGORIES.map((category, index) => (
-          <View
-            key={category.key}
-            style={[styles.row, index < CATEGORIES.length - 1 && styles.rowDivider]}
-          >
-            <Ionicons name={category.icon} size={20} color={colors.tint} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.rowTitle}>{category.title}</Text>
-              <Text style={styles.rowSubtitle}>{category.subtitle}</Text>
+          <View key={category.key} style={index < CATEGORIES.length - 1 && styles.rowDivider}>
+            <View style={styles.row}>
+              <Ionicons name={category.icon} size={20} color={colors.tint} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.rowTitle}>{category.title}</Text>
+                <Text style={styles.rowSubtitle}>{category.subtitle}</Text>
+              </View>
+              <Switch
+                value={prefs[category.key]}
+                onValueChange={(value) => save({ [category.key]: value })}
+                accessibilityLabel={category.title}
+              />
             </View>
-            <Switch
-              value={prefs[category.key]}
-              onValueChange={(value) => toggle(category.key, value)}
-              accessibilityLabel={category.title}
-            />
+            {category.key === "chores" && prefs.chores && (
+              <View style={styles.reminder}>
+                <View style={styles.hourChips}>
+                  {REMINDER_HOURS.map((hour) => (
+                    <Chip
+                      key={hour}
+                      label={`${hour} Uhr`}
+                      selected={prefs.reminder_hour === hour}
+                      onPress={() => save({ reminder_hour: hour })}
+                    />
+                  ))}
+                </View>
+                <Text style={styles.rowSubtitle}>{reminderHint(prefs.reminder_hour)}</Text>
+              </View>
+            )}
           </View>
         ))}
       </Card>
@@ -164,4 +189,6 @@ const useStyles = makeStyles((colors) => ({
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   rowTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
   rowSubtitle: { fontSize: 13, color: colors.subtext },
+  reminder: { paddingLeft: 32, paddingBottom: 12, gap: 8 },
+  hourChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
 }));

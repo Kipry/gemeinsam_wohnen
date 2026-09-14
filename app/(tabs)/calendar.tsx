@@ -3,6 +3,7 @@ import { router, useFocusEffect } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
+import { useRefresh } from "../../src/lib/useRefresh";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
@@ -20,7 +21,7 @@ import {
 } from "../../src/lib/dates";
 import { EVENT_KINDS } from "../../src/lib/eventKinds";
 import { layoutWeek, type SpanItem } from "../../src/lib/calendarLayout";
-import { Loading, UndoToast } from "../../src/components/ui";
+import { Loading, PullToRefresh, UndoToast } from "../../src/components/ui";
 import type {
   Absence,
   CalendarEvent,
@@ -111,6 +112,7 @@ export default function CalendarScreen() {
 
     setLoading(false);
   }, [activeHousehold, rangeStart, rangeEnd]);
+  const { refreshing, onRefresh } = useRefresh(load);
 
   useFocusEffect(
     useCallback(() => {
@@ -236,7 +238,10 @@ export default function CalendarScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 110 }}
+        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {awayToday.length > 0 && (
           <View style={styles.awayBanner}>
             <Ionicons name="airplane" size={14} color={dot.absence} />

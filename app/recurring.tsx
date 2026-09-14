@@ -3,12 +3,13 @@ import { router, useFocusEffect } from "expo-router";
 import { Alert, FlatList, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
+import { useRefresh } from "../src/lib/useRefresh";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
-import { Button, Card, Empty, Loading, Muted, Screen } from "../src/components/ui";
+import { Button, Card, Empty, Loading, Muted, PullToRefresh, Screen } from "../src/components/ui";
 import type { RecurringExpense } from "../src/types/database";
 
 export default function RecurringScreen() {
@@ -32,6 +33,7 @@ export default function RecurringScreen() {
     setEntries((data as RecurringExpense[]) ?? []);
     setLoading(false);
   }, [activeHousehold]);
+  const { refreshing, onRefresh } = useRefresh(load);
 
   useFocusEffect(
     useCallback(() => {
@@ -75,6 +77,7 @@ export default function RecurringScreen() {
   return (
     <Screen>
       <FlatList
+        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
         data={entries}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, gap: 12 }}

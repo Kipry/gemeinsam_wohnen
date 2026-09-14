@@ -1,6 +1,8 @@
 import { useEffect, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
+  type RefreshControlProps,
   StyleSheet,
   Text,
   TextInput,
@@ -39,6 +41,19 @@ export function Empty({ children }: { children: ReactNode }) {
 export function ErrorText({ children }: { children: ReactNode }) {
   const styles = useStyles();
   return <Text style={styles.error}>{children}</Text>;
+}
+
+/** RefreshControl in den Farben des aktuellen Modus */
+export function PullToRefresh(props: RefreshControlProps) {
+  const colors = useColors();
+  return (
+    <RefreshControl
+      tintColor={colors.subtext}
+      colors={[colors.tint]}
+      progressBackgroundColor={colors.card}
+      {...props}
+    />
+  );
 }
 
 export function Loading() {
