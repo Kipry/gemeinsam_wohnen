@@ -21,7 +21,9 @@ import {
 } from "../../src/lib/dates";
 import { EVENT_KINDS } from "../../src/lib/eventKinds";
 import { layoutWeek, type SpanItem } from "../../src/lib/calendarLayout";
-import { Loading, PullToRefresh, UndoToast } from "../../src/components/ui";
+import { useWaste } from "../../src/lib/useWaste";
+import { collectionsBetween, rhythmText } from "../../src/lib/waste";
+import { Loading, pullToRefresh, UndoToast } from "../../src/components/ui";
 import type {
   Absence,
   CalendarEvent,
@@ -34,8 +36,10 @@ type Chore = TaskOccurrence & { tasks: Pick<Task, "title"> };
 
 const MAX_LANES = 3;
 const LANE_HEIGHT = 16;
-/** Höhe von Tageszahl und Aufgabenpunkt über den Balken */
-const DAY_AREA = 38;
+/** Höhe von Tageszahl und Markierungen (Aufgabe, Tonnen) über den Balken */
+const DAY_AREA = 44;
+/** Mehr Tonnen-Symbole passen nicht sauber in eine Zelle */
+const MAX_BIN_ICONS = 3;
 
 export default function CalendarScreen() {
   const styles = useStyles();
@@ -64,6 +68,11 @@ export default function CalendarScreen() {
   const grid = useMemo(() => monthGrid(cursor.year, cursor.month), [cursor]);
   const rangeStart = grid[0];
   const rangeEnd = grid[grid.length - 1];
+  const { bins, changes } = useWaste(activeHousehold?.id);
+  const collections = useMemo(
+    () => collectionsBetween(bins, changes, rangeStart, rangeEnd),
+    [bins, changes, rangeStart, rangeEnd]
+  );
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
@@ -165,8 +174,10 @@ export default function CalendarScreen() {
       events: events.filter((event) => event.starts_on <= iso && event.ends_on >= iso),
       absences: absences.filter((absence) => absence.start_date <= iso && absence.end_date >= iso),
       chores: myChores.filter((chore) => chore.due_date === iso),
+      // Ausgefallene bleiben in der Tagesansicht sichtbar, damit man sie zurückholen kann
+      waste: collections.filter((entry) => entry.date === iso),
     }),
-    [events, absences, myChores]
+    [events, absences, myChores, collections]
   );
 
   const weeks = useMemo(
@@ -234,13 +245,17 @@ export default function CalendarScreen() {
   const selectedInfo = dayInfo(selected);
   const awayToday = dayInfo(today).absences;
   const isEmptyDay =
-    selectedInfo.events.length + selectedInfo.absences.length + selectedInfo.chores.length === 0;
+    selectedInfo.events.length +
+      selectedInfo.absences.length +
+      selectedInfo.chores.length +
+      selectedInfo.waste.length ===
+    0;
 
   return (
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 110 }}
-        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={pullToRefresh(refreshing, onRefresh)}
       >
         {awayToday.length > 0 && (
           <View style={styles.awayBanner}>
@@ -288,6 +303,9 @@ export default function CalendarScreen() {
                   const isToday = iso === today;
                   const isSelected = iso === selected;
                   const hasChore = myChores.some((chore) => chore.due_date === iso);
+                  const pickups = collections.filter(
+                    (entry) => entry.date === iso && entry.status !== "cancelled"
+                  );
                   return (
                     <TouchableOpacity
                       key={iso}
@@ -317,7 +335,17 @@ export default function CalendarScreen() {
                           {Number(iso.slice(8, 10))}
                         </Text>
                       </View>
-                      <View style={[styles.choreDot, hasChore && { backgroundColor: dot.chore }]} />
+                      <View style={styles.markers}>
+                        {hasChore && <View style={[styles.choreDot, { backgroundColor: dot.chore }]} />}
+                        {pickups.slice(0, MAX_BIN_ICONS).map((entry) => (
+                          <Ionicons
+                            key={entry.bin.id}
+                            name="trash"
+                            size={10}
+                            color={colors.waste[entry.bin.kind]}
+                          />
+                        ))}
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -388,11 +416,52 @@ export default function CalendarScreen() {
           <LegendBar tint={tint.absence} accent={dot.absence} label="Abwesend" />
           <Legend color={dot.chore} label="Deine Aufgabe" />
         </View>
+        <View style={styles.legend}>
+          {bins.map((bin) => (
+            <TouchableOpacity key={bin.id} style={styles.legendItem} onPress={() => router.push("/waste")}>
+              <Ionicons name="trash" size={11} color={colors.waste[bin.kind]} />
+              <Text style={styles.legendText}>{bin.label}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={styles.legendItem} onPress={() => router.push("/waste")}>
+            <Ionicons name={bins.length === 0 ? "add-circle-outline" : "settings-outline"} size={13} color={colors.tint} />
+            <Text style={styles.legendLink}>{bins.length === 0 ? "Müllabfuhr eintragen" : "Müllabfuhr"}</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.dayPanel}>
           <Text style={styles.dayTitle}>{formatLong(selected)}</Text>
 
           {isEmptyDay && <Text style={styles.emptyDay}>Nichts eingetragen.</Text>}
+
+          {selectedInfo.waste.map((entry) => (
+            <TouchableOpacity
+              key={`${entry.bin.id}-${entry.originalDate}`}
+              style={styles.entry}
+              onPress={() =>
+                router.push({ pathname: "/waste-change", params: { bin: entry.bin.id, date: entry.originalDate } })
+              }
+            >
+              <Ionicons
+                name={entry.status === "cancelled" ? "trash-outline" : "trash"}
+                size={18}
+                color={colors.waste[entry.bin.kind]}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.entryTitle, entry.status === "cancelled" && styles.entryCancelled]}>
+                  {entry.bin.label} {entry.status === "cancelled" ? "fällt aus" : "wird abgeholt"}
+                </Text>
+                <Text style={styles.entryMeta}>
+                  {entry.status === "moved"
+                    ? `verschoben vom ${formatShort(entry.originalDate)}`
+                    : entry.status === "cancelled"
+                      ? "antippen, um sie zurückzuholen"
+                      : `${rhythmText(entry.bin)} · antippen zum Verschieben`}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
+            </TouchableOpacity>
+          ))}
 
           {selectedInfo.events.map((event) => {
             const kind = EVENT_KINDS[event.kind];
@@ -450,7 +519,9 @@ export default function CalendarScreen() {
             <TouchableOpacity
               key={chore.id}
               style={styles.entry}
-              onPress={() => router.push(`/task/${chore.task_id}`)}
+              onPress={() =>
+                router.push({ pathname: "/chore/[taskId]", params: { taskId: chore.task_id, date: chore.due_date } })
+              }
             >
               <Ionicons name="sparkles" size={18} color={dot.chore} />
               <View style={{ flex: 1 }}>
@@ -556,7 +627,8 @@ const useStyles = makeStyles((colors) => ({
   week: { flexDirection: "row", position: "relative" },
   // Zelle über die volle Zeilenhöhe, damit auch Tipps auf einen Balken den Tag wählen
   cell: { flex: 1, alignItems: "center", paddingTop: 3 },
-  choreDot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+  markers: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2, height: 12, marginTop: 1 },
+  choreDot: { width: 5, height: 5, borderRadius: 3 },
   bar: { position: "absolute", height: LANE_HEIGHT - 2 },
   barFill: {
     flex: 1,
@@ -586,10 +658,11 @@ const useStyles = makeStyles((colors) => ({
   dayToday: { borderWidth: 1.5, borderColor: colors.primary },
   daySelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   dayNumber: { fontSize: 15, color: colors.text },
-  dayOutside: { color: colors.border },
+  dayOutside: { color: colors.faint },
   dayNumberSelected: { color: "#fff", fontWeight: "700" },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  legend: { flexDirection: "row", justifyContent: "center", gap: 14, paddingVertical: 8 },
+  legend: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", columnGap: 14, rowGap: 6, paddingVertical: 6 },
+  legendLink: { fontSize: 12, fontWeight: "600", color: colors.tint },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendText: { fontSize: 12, color: colors.subtext },
   dayPanel: {
@@ -607,6 +680,7 @@ const useStyles = makeStyles((colors) => ({
   entry: { flexDirection: "row", alignItems: "center", gap: 10 },
   entryTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
   entryMeta: { fontSize: 13, color: colors.subtext, marginTop: 1 },
+  entryCancelled: { color: colors.subtext },
   iconButton: { padding: 6 },
   actions: {
     position: "absolute",

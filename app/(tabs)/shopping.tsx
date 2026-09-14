@@ -18,7 +18,7 @@ import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { AISLE_ORDER, guessCategory, normalizeName } from "../../src/lib/shoppingCategories";
-import { Chip, Empty, Loading, PullToRefresh, Screen, UndoToast } from "../../src/components/ui";
+import { Chip, Empty, Loading, pullToRefresh, Screen, UndoToast } from "../../src/components/ui";
 import type { ShoppingItem, ShoppingTrip } from "../../src/types/database";
 
 export default function ShoppingScreen() {
@@ -342,7 +342,7 @@ export default function ShoppingScreen() {
 
       <SectionList
 
-        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={pullToRefresh(refreshing, onRefresh)}
         sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 90 }}

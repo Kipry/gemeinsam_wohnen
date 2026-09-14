@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
-import { makeStyles } from "../lib/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { makeStyles, useColors } from "../lib/theme";
 import { FORMER_MEMBER } from "../lib/useHouseholdMembers";
 import { Button, Chip, ErrorText, Input, Muted, SectionTitle } from "./ui";
 import type { AssignmentMode, HouseholdPlaceholder, Profile } from "../types/database";
@@ -23,14 +24,41 @@ const MODES: { value: AssignmentMode; label: string; hint: string }[] = [
 ];
 
 /** Häufige WG-Aufgaben, damit man nicht vor einem leeren Formular sitzt. */
-export const TEMPLATES: { title: string; points: number; interval_days: number }[] = [
-  { title: "Müll rausbringen", points: 1, interval_days: 7 },
-  { title: "Bad putzen", points: 3, interval_days: 7 },
-  { title: "Küche putzen", points: 3, interval_days: 7 },
-  { title: "Staubsaugen", points: 2, interval_days: 7 },
-  { title: "Spülmaschine ausräumen", points: 1, interval_days: 2 },
-  { title: "Bad-Handtücher wechseln", points: 1, interval_days: 14 },
+export const TEMPLATES: { title: string; points: number; interval_days: number; checklist: string[] }[] = [
+  {
+    title: "Müll rausbringen",
+    points: 1,
+    interval_days: 7,
+    checklist: ["Restmüll", "Papier", "Gelber Sack", "Bio", "Neue Tüten einlegen"],
+  },
+  {
+    title: "Bad putzen",
+    points: 3,
+    interval_days: 7,
+    checklist: ["Waschbecken & Armaturen", "Spiegel", "Toilette", "Dusche / Badewanne", "Mülleimer leeren", "Boden wischen"],
+  },
+  {
+    title: "Küche putzen",
+    points: 3,
+    interval_days: 7,
+    checklist: ["Arbeitsflächen", "Herd & Ceranfeld", "Spüle & Abfluss", "Mikrowelle auswischen", "Kühlschrank: Abgelaufenes raus", "Boden wischen"],
+  },
+  {
+    title: "Staubsaugen",
+    points: 2,
+    interval_days: 7,
+    checklist: ["Flur", "Küche", "Bad", "Wohnzimmer"],
+  },
+  { title: "Spülmaschine ausräumen", points: 1, interval_days: 2, checklist: [] },
+  {
+    title: "Bad-Handtücher wechseln",
+    points: 1,
+    interval_days: 14,
+    checklist: ["Handtücher waschen", "Frische aufhängen", "Badvorleger ausschütteln"],
+  },
 ];
+
+export type ChecklistDraft = { id?: string; label: string };
 
 /** 0 = Sonntag, passend zu extract(dow) in Postgres */
 const WEEKDAYS = [
@@ -52,6 +80,8 @@ export type TaskFormValues = {
   fixed_assignee: string | null;
   skip_absent: boolean;
   weekday: number | null;
+  description: string | null;
+  checklist: ChecklistDraft[];
 };
 
 export type TaskFormInitial = {
@@ -63,6 +93,8 @@ export type TaskFormInitial = {
   fixed_assignee: string | null;
   skip_absent: boolean;
   weekday: number | null;
+  description: string;
+  checklist: ChecklistDraft[];
 };
 
 export function TaskForm({
@@ -71,6 +103,7 @@ export function TaskForm({
   placeholders = [],
   currentUserId,
   initial,
+  preset,
   submitLabel,
   saving,
   onSubmit,
@@ -82,20 +115,29 @@ export function TaskForm({
   placeholders?: HouseholdPlaceholder[];
   currentUserId: string;
   initial?: TaskFormInitial;
+  /** Vorbelegung für eine neue Aufgabe (Vorlagen bleiben sichtbar) */
+  preset?: Partial<TaskFormInitial>;
   submitLabel: string;
   saving: boolean;
   onSubmit: (values: TaskFormValues) => void;
   footer?: ReactNode;
 }) {
   const styles = useStyles();
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [points, setPoints] = useState(initial?.points ?? "1");
-  const [intervalDays, setIntervalDays] = useState(initial?.interval_days ?? "7");
+  const colors = useColors();
+  const start = initial ?? preset;
+  const [title, setTitle] = useState(start?.title ?? "");
+  const [points, setPoints] = useState(start?.points ?? "1");
+  const [intervalDays, setIntervalDays] = useState(start?.interval_days ?? "7");
   const [mode, setMode] = useState<AssignmentMode>(initial?.assignment_mode ?? "anyone");
   const [rotation, setRotation] = useState<string[]>(initial?.rotation ?? []);
   const [fixedAssignee, setFixedAssignee] = useState<string | null>(initial?.fixed_assignee ?? null);
   const [skipAbsent, setSkipAbsent] = useState(initial?.skip_absent ?? true);
-  const [weekday, setWeekday] = useState<number | null>(initial?.weekday ?? null);
+  const [weekday, setWeekday] = useState<number | null>(start?.weekday ?? null);
+  const [description, setDescription] = useState(start?.description ?? "");
+  const [checklist, setChecklist] = useState<ChecklistDraft[]>(start?.checklist ?? []);
+  const [newItem, setNewItem] = useState("");
+  // Checkliste aus einer Vorlage darf die nächste Vorlage ersetzen, eine eigene nicht
+  const [checklistFromTemplate, setChecklistFromTemplate] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const nameFor = (id: string) =>
@@ -105,6 +147,37 @@ export function TaskForm({
     setTitle(template.title);
     setPoints(String(template.points));
     setIntervalDays(String(template.interval_days));
+    if (checklist.length === 0 || checklistFromTemplate) {
+      setChecklist(template.checklist.map((label) => ({ label })));
+      setChecklistFromTemplate(true);
+    }
+  };
+
+  const addItem = () => {
+    const label = newItem.trim();
+    if (!label) return;
+    setChecklist((prev) => [...prev, { label }]);
+    setChecklistFromTemplate(false);
+    setNewItem("");
+  };
+
+  const updateItem = (index: number, label: string) => {
+    setChecklist((prev) => prev.map((item, i) => (i === index ? { ...item, label } : item)));
+    setChecklistFromTemplate(false);
+  };
+
+  const removeItem = (index: number) => {
+    setChecklist((prev) => prev.filter((_, i) => i !== index));
+    setChecklistFromTemplate(false);
+  };
+
+  const moveItemUp = (index: number) => {
+    if (index === 0) return;
+    setChecklist((prev) => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
   };
 
   const toggleRotation = (id: string) => {
@@ -145,6 +218,11 @@ export function TaskForm({
       fixed_assignee: mode === "fixed" ? fixedAssignee : null,
       skip_absent: skipAbsent,
       weekday,
+      description: description.trim() || null,
+      // Noch nicht mit + übernommene Eingabe nicht verlieren
+      checklist: [...checklist, ...(newItem.trim() ? [{ label: newItem.trim() }] : [])]
+        .map((item) => ({ ...item, label: item.label.trim() }))
+        .filter((item) => item.label),
     });
   };
 
@@ -190,6 +268,51 @@ export function TaskForm({
           <Input value={intervalDays} onChangeText={setIntervalDays} keyboardType="number-pad" />
         </View>
       </View>
+
+      <SectionTitle>Checkliste</SectionTitle>
+      <Muted>Was gehört dazu? Beim Erledigen lässt sich alles abhaken.</Muted>
+      {checklist.map((item, index) => (
+        <View key={item.id ?? `neu-${index}`} style={styles.itemRow}>
+          <Ionicons name="square-outline" size={18} color={colors.subtext} />
+          <Input
+            style={styles.itemInput}
+            value={item.label}
+            onChangeText={(value) => updateItem(index, value)}
+            accessibilityLabel={`Punkt ${index + 1}`}
+          />
+          {index > 0 && (
+            <TouchableOpacity onPress={() => moveItemUp(index)} style={styles.itemButton} accessibilityLabel="Nach oben">
+              <Ionicons name="arrow-up" size={18} color={colors.subtext} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => removeItem(index)} style={styles.itemButton} accessibilityLabel="Entfernen">
+            <Ionicons name="close" size={18} color={colors.subtext} />
+          </TouchableOpacity>
+        </View>
+      ))}
+      <View style={styles.itemRow}>
+        <Input
+          style={styles.itemInput}
+          placeholder={checklist.length === 0 ? "z.B. Spiegel putzen" : "Weiterer Punkt"}
+          value={newItem}
+          onChangeText={setNewItem}
+          onSubmitEditing={addItem}
+          returnKeyType="done"
+          blurOnSubmit={false}
+        />
+        <TouchableOpacity onPress={addItem} style={styles.addItemButton} accessibilityLabel="Punkt hinzufügen">
+          <Ionicons name="add" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      <SectionTitle>Notiz</SectionTitle>
+      <Input
+        placeholder="z.B. Putzmittel stehen unter der Spüle"
+        value={description}
+        onChangeText={setDescription}
+        multiline
+        style={styles.notes}
+      />
 
       <SectionTitle>Fester Wochentag</SectionTitle>
       <View style={styles.chipWrap}>
@@ -292,4 +415,16 @@ const useStyles = makeStyles((colors) => ({
   switchRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 },
   switchLabel: { fontSize: 15, color: colors.text, fontWeight: "600" },
   link: { color: colors.tint, fontWeight: "600" },
+  itemRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  itemInput: { flex: 1, paddingVertical: 9 },
+  itemButton: { padding: 6 },
+  addItemButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  notes: { minHeight: 70, textAlignVertical: "top" },
 }));

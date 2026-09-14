@@ -10,7 +10,7 @@ import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { formatCents, suggestSettlements } from "../../src/lib/money";
-import { Button, Card, Empty, Loading, PullToRefresh, Screen, SectionTitle } from "../../src/components/ui";
+import { Button, Card, Empty, Loading, pullToRefresh, Screen, SectionTitle } from "../../src/components/ui";
 import type { Expense, ExpenseBalance } from "../../src/types/database";
 
 type ExpenseWithShares = Expense & { expense_shares: { user_id: string; share_cents: number }[] };
@@ -113,7 +113,7 @@ export default function ExpensesScreen() {
   return (
     <Screen>
       <FlatList
-        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={pullToRefresh(refreshing, onRefresh)}
         data={expenses}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 90 }}

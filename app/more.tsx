@@ -26,6 +26,7 @@ const LINKS = [
     title: "Feste Kosten",
     subtitle: "Miete, Strom, Streaming",
   },
+  { href: "/waste", icon: "trash", title: "Müllabfuhr", subtitle: "Wann welche Tonne abgeholt wird" },
   { href: "/teams", icon: "people", title: "Teams", subtitle: "Putz-Teams verwalten" },
   {
     href: "/notifications",

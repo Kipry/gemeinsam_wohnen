@@ -12,7 +12,7 @@ Edge Functions, pg_net/pg_cron für Push).
 | --- | --- |
 | **Login** | E-Mail + Passwort, „Mit Apple anmelden" (iOS) |
 | **WGs** | WG erstellen oder beitreten — per Einladungslink, QR-Code oder 6-stelligem Code. Nach dem Gründen führt ein Assistent durch Mitbewohner und Putzplan: noch nicht beigetretene Mitbewohner werden als Platzhalter vorgemerkt und stehen sofort in der Rotation; wer beitritt, wählt „Ich bin Lisa" und übernimmt Platz und Termine. Ein Account kann in mehreren WGs sein |
-| **Putzplan** | Wiederkehrende Aufgaben mit Punkten, Intervall und optional festem Wochentag. Zuteilung wahlweise: *wer mag*, *reihum an Personen*, *reihum an Teams*, *feste Person*. Termine werden vier Wochen im Voraus geplant — Ansicht „Plan" zeigt sie nach Wochen gruppiert, „Routinen" jede angelegte Aufgabe einmal mit Rhythmus, Reihenfolge und nächstem Termin. Vorlagen für die häufigsten WG-Aufgaben. Abhaken ist rückgängig zu machen, Aufgaben lassen sich bearbeiten, pausieren und löschen |
+| **Putzplan** | Wiederkehrende Aufgaben mit Punkten, Intervall und optional festem Wochentag. Zuteilung wahlweise: *wer mag*, *reihum an Personen*, *reihum an Teams*, *feste Person*. Termine werden vier Wochen im Voraus geplant — Ansicht „Plan" zeigt sie nach Wochen gruppiert, „Routinen" jede angelegte Aufgabe einmal mit Rhythmus, Reihenfolge und nächstem Termin. Jede Routine kann eine Checkliste und eine Notiz haben (Vorlagen bringen passende Listen mit); beim Antippen einer Aufgabe hakt man die Punkte ab — der Bildschirm bleibt dabei an, Haken von Mitputzenden erscheinen live. Vorlagen für die häufigsten WG-Aufgaben. Abhaken ist rückgängig zu machen, Aufgaben lassen sich bearbeiten (Name, Punkte, Notiz und Checkliste ändern den Plan nicht), pausieren und löschen |
 | **Teams** | Putz-Teams anlegen und Mitglieder zuordnen — Aufgaben können reihum an ganze Teams gehen |
 | **Tracking** | Statistik pro Person: erledigte Aufgaben, Punkte, Pünktlichkeitsquote, offene und überfällige Zuweisungen, Vergleich zum WG-Durchschnitt |
 | **Monatsrückblick** | Pro Monat: Gesamtausgaben mit Vergleich zum Vormonat und eigenem Anteil, Ausgaben nach Kategorie, wer was bezahlt und getragen hat, Putzpunkte und Pünktlichkeit pro Person |
@@ -20,8 +20,9 @@ Edge Functions, pg_net/pg_cron für Push).
 | **Einkauf** | Liste nach Regalreihenfolge sortiert, Kategorie wird beim Tippen geraten. Vorschläge aus der WG-Historie, Dublettenerkennung, Mengen-Stepper, Realtime-Sync, Löschen mit Rückgängig. „Ich kauf ein" öffnet eine Einkaufs-Sitzung; am Ende wird daraus mit einem Betrag eine geteilte Ausgabe — ohne alles zweimal zu tippen |
 | **Feste Kosten** | Miete, Strom, Streaming einmal anlegen; die App bucht die Ausgabe monatlich selbst und holt verpasste Monate nach |
 | **Kalender** | Monatsansicht mit gemeinsamen Terminen (Termin, WG-Abend, Besuch, Handwerker, Geburtstag), Abwesenheiten und den eigenen Putzaufgaben. Termine mit Uhrzeit oder ganztägig, auch mehrtägig (als durchgehender Balken über die Tage), mit Zusage-Liste — beim Handwerker heißt die Zusage „Ich mache auf". Abwesenheit per Chip für den angetippten Tag, Heute, Morgen, Wochenende oder nächste Woche; Abwesende werden aus geplanten Rotations-Terminen herausgenommen und der weitere Plan neu verteilt |
+| **Müllabfuhr** | Tonnen einmal eintragen (Art, Abholtag, Rhythmus) — die Abholtage erscheinen als Tonnen-Symbole im Kalender, der Putzplan zeigt am Vortag „Heute Abend rausstellen". Einzelne Abholungen lassen sich im Kalender verschieben oder ausfallen lassen (Feiertage); am Vorabend kommt eine Mitteilung. Auf Wunsch wird „Mülltonnen rausstellen" zur rotierenden Putzplan-Aufgabe |
 | **Chat** | Pinnwand statt Messenger: erledigte Aufgaben, neue Ausgaben, Termine und Abwesenheiten erscheinen als Ereigniskarte im Verlauf. Aushänge kleben oben, bis alle „Verstanden" getippt haben; Bitten haben einen „Mach ich"-Knopf |
-| **Mitteilungen** | Push bei Chat-Nachrichten, Aushängen und Bitten („Ben kümmert sich drum"), neuen Ausgaben mit dem eigenen Anteil, Rückzahlungen, „Ben geht einkaufen", neuen Terminen und Abwesenheiten, neuen Mitbewohnern und wenn jemand die eigene Aufgabe übernommen hat. Erinnerung, wenn man dran ist — zur selbst gewählten Uhrzeit: morgens für heute oder abends für morgen. Jeder Bereich einzeln abschaltbar; ein Tipp öffnet den passenden Bildschirm in der richtigen WG |
+| **Mitteilungen** | Push bei Chat-Nachrichten, Aushängen und Bitten („Ben kümmert sich drum"), neuen Ausgaben mit dem eigenen Anteil, Rückzahlungen, „Ben geht einkaufen", neuen Terminen und Abwesenheiten, neuen Mitbewohnern, wenn jemand die eigene Aufgabe übernommen hat und am Vorabend der Müllabfuhr. Erinnerung, wenn man dran ist — zur selbst gewählten Uhrzeit: morgens für heute oder abends für morgen. Jeder Bereich einzeln abschaltbar; ein Tipp öffnet den passenden Bildschirm in der richtigen WG |
 | **Bedienung** | Dunkelmodus (folgt dem System), eigenes App-Icon in Hell/Dunkel/Getönt, kurzes Vibrieren beim Abhaken, Erledigen und Bezahlen, Listen per Herunterziehen aktualisieren |
 | **Konto** | WG verlassen (Putz-Plätze werden neu verteilt) und Konto löschen. Ausgaben und Salden bleiben für die anderen stimmig — statt des Namens steht dort „Ehemaliges Mitglied"; Persönliches wie Chat-Nachrichten und Abwesenheiten wird gelöscht |
 
@@ -100,10 +101,12 @@ profiles ─┬─ household_members ─── households
           │                            ├── household_placeholders
           │                            ├── teams ── team_members
           │                            ├── tasks ── task_rotation
-          │                            │        └── task_occurrences   (Termine + Erledigung)
+          │                            │        ├── task_occurrences   (Termine + Erledigung)
+          │                            │        └── task_checklist_items ── task_checklist_checks (je Tag)
           │                            ├── shopping_items
           │                            ├── absences
           │                            ├── calendar_events ── calendar_event_attendees
+          │                            ├── waste_bins ── waste_bin_changes
           │                            ├── chat_messages ── chat_receipts
           │                            ├── shopping_trips
           │                            ├── recurring_expenses ── recurring_expense_shares
@@ -146,6 +149,8 @@ app/                 Screens (Expo Router, dateibasiertes Routing)
   onboarding.tsx, claim.tsx  WG-Einstieg und Übernahme eines Platzhalters
   more.tsx, review.tsx, teams.tsx, stats.tsx
   notifications.tsx, delete-account.tsx
+  chore/[taskId].tsx  Aufgabe abarbeiten (Checkliste, Notiz, erledigen)
+  waste.tsx, waste-bin.tsx, waste-change.tsx  Müllabfuhr
 src/components/ui.tsx  Gemeinsame UI-Bausteine
 src/lib/             Supabase-Client, Auth-/Household-Context, Geld-Helfer, Theme
 src/types/           TypeScript-Typen der DB-Tabellen

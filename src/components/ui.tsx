@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  Platform,
   RefreshControl,
   type RefreshControlProps,
   StyleSheet,
@@ -41,6 +42,15 @@ export function Empty({ children }: { children: ReactNode }) {
 export function ErrorText({ children }: { children: ReactNode }) {
   const styles = useStyles();
   return <Text style={styles.error}>{children}</Text>;
+}
+
+/**
+ * `refreshControl` für Listen: nur auf dem Handy. Im Web gibt es die Geste nicht,
+ * und react-native-web lässt die Tabs damit beim direkten Aufruf auf den ersten
+ * Tab zurückspringen.
+ */
+export function pullToRefresh(refreshing: boolean, onRefresh: () => void) {
+  return Platform.OS === "web" ? undefined : <PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />;
 }
 
 /** RefreshControl in den Farben des aktuellen Modus */

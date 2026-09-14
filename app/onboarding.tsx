@@ -87,7 +87,7 @@ export default function Onboarding() {
       const offset = index % people.length;
       const rotation = [...people.slice(offset), ...people.slice(0, offset)];
 
-      const { error: taskError } = await supabase.rpc("create_task", {
+      const { data: createdTask, error: taskError } = await supabase.rpc("create_task", {
         p_household_id: activeHousehold.id,
         p_title: template.title,
         p_points: template.points,
@@ -97,10 +97,17 @@ export default function Onboarding() {
         p_first_due: addDays(todayISO(), index),
       });
 
-      if (taskError) {
+      if (taskError || !createdTask) {
         setSaving(false);
-        setError(taskError.message);
+        setError(taskError?.message ?? "Aufgabe konnte nicht angelegt werden");
         return;
+      }
+
+      if (template.checklist.length > 0) {
+        await supabase.rpc("save_task_checklist", {
+          p_task_id: (createdTask as { id: string }).id,
+          p_items: template.checklist.map((label) => ({ label })),
+        });
       }
     }
 

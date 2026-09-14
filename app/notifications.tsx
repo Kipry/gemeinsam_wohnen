@@ -8,7 +8,7 @@ import { getPushStatus, registerPush, type PushStatus } from "../src/lib/push";
 import { Button, Card, Chip, Loading, Muted } from "../src/components/ui";
 import type { NotificationPrefs } from "../src/types/database";
 
-type Category = "chores" | "chat" | "shopping" | "expenses" | "calendar";
+type Category = "chores" | "chat" | "shopping" | "expenses" | "calendar" | "waste";
 type Prefs = Record<Category, boolean> & { reminder_hour: number };
 
 /** Morgens erinnert an heute, abends an morgen */
@@ -41,6 +41,7 @@ const CATEGORIES: { key: Category; icon: keyof typeof Ionicons.glyphMap; title: 
     subtitle: "Neue Ausgaben, an denen du beteiligt bist, und Rückzahlungen",
   },
   { key: "calendar", icon: "calendar", title: "Kalender", subtitle: "Neue Termine und Abwesenheiten" },
+  { key: "waste", icon: "trash", title: "Müllabfuhr", subtitle: "Am Vorabend, welche Tonnen rausmüssen" },
 ];
 
 const DEFAULTS: Prefs = {
@@ -49,6 +50,7 @@ const DEFAULTS: Prefs = {
   shopping: true,
   expenses: true,
   calendar: true,
+  waste: true,
   reminder_hour: 18,
 };
 
@@ -80,6 +82,7 @@ export default function NotificationsScreen() {
                 shopping: row.shopping,
                 expenses: row.expenses,
                 calendar: row.calendar,
+                waste: row.waste,
                 reminder_hour: row.reminder_hour,
               }
             : DEFAULTS

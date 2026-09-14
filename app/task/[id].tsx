@@ -9,9 +9,9 @@ import { useTeams } from "../../src/lib/useTeams";
 import { usePlaceholders } from "../../src/lib/usePlaceholders";
 import { TaskForm, type TaskFormInitial, type TaskFormValues } from "../../src/components/TaskForm";
 import { Button, ErrorText, Loading, Muted } from "../../src/components/ui";
-import type { Task, TaskRotationEntry } from "../../src/types/database";
+import type { Task, TaskChecklistItem, TaskRotationEntry } from "../../src/types/database";
 
-type LoadedTask = Task & { task_rotation: TaskRotationEntry[] };
+type LoadedTask = Task & { task_rotation: TaskRotationEntry[]; task_checklist_items: TaskChecklistItem[] };
 
 export default function TaskDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,7 +28,7 @@ export default function TaskDetail() {
     if (!id) return;
     const { data, error: loadError } = await supabase
       .from("tasks")
-      .select("*, task_rotation(*)")
+      .select("*, task_rotation(*), task_checklist_items!task_checklist_items_task_id_fkey(*)")
       .eq("id", id)
       .single();
 
@@ -60,11 +60,23 @@ export default function TaskDetail() {
       p_skip_absent: values.skip_absent,
       p_weekday: values.weekday,
       p_active: active,
+      p_description: values.description,
+    });
+
+    if (rpcError) {
+      setSaving(false);
+      setError(rpcError.message);
+      return false;
+    }
+
+    const { error: checklistError } = await supabase.rpc("save_task_checklist", {
+      p_task_id: task.id,
+      p_items: values.checklist,
     });
     setSaving(false);
 
-    if (rpcError) {
-      setError(rpcError.message);
+    if (checklistError) {
+      setError(`Checkliste nicht gespeichert: ${checklistError.message}`);
       return false;
     }
     return true;
@@ -125,6 +137,10 @@ export default function TaskDetail() {
     fixed_assignee: task.fixed_assignee,
     skip_absent: task.skip_absent,
     weekday: task.weekday,
+    description: task.description ?? "",
+    checklist: [...task.task_checklist_items]
+      .sort((a, b) => a.position - b.position)
+      .map((item) => ({ id: item.id, label: item.label })),
   };
 
   return (

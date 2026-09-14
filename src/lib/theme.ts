@@ -7,6 +7,8 @@ const light = {
   card: "#FFFFFF",
   text: "#1C1C28",
   subtext: "#6B6B7B",
+  /** Bewusst zurückgenommen, aber lesbar — z.B. Tage aus dem Nachbarmonat */
+  faint: "#9A9AAA",
   border: "#E4E4EE",
   /** Flächen: Buttons, gewählte Chips, Balken — Schrift darauf ist weiß */
   primary: "#5B5FEF",
@@ -25,6 +27,12 @@ const light = {
   /** Hinweisleiste „Rückgängig" */
   toast: "#1C1C28",
   toastText: "#FFFFFF",
+  /**
+   * Tonnenarten — nur als Beiwerk neben dem Namen, nie allein unterscheidend
+   * (bei fünf gleichzeitig möglichen Farben reicht der Abstand dafür nicht).
+   * Jede Farbe mindestens 3:1 auf Karte und Hintergrund.
+   */
+  waste: { rest: "#6B6B7B", papier: "#2A78D6", bio: "#008300", gelb: "#A87400", sonstige: "#4A3AA7" },
 };
 
 export type Colors = typeof light;
@@ -34,6 +42,7 @@ const dark: Colors = {
   card: "#1A1A22",
   text: "#EDEDF3",
   subtext: "#A3A3B5",
+  faint: "#62627A",
   border: "#2D2D39",
   primary: "#5B5FEF",
   primaryText: "#FFFFFF",
@@ -48,6 +57,7 @@ const dark: Colors = {
   absenceAccent: "#FFB547",
   toast: "#2D2D39",
   toastText: "#FFFFFF",
+  waste: { rest: "#A3A3B5", papier: "#3987E5", bio: "#2FA23C", gelb: "#C98500", sonstige: "#9085E9" },
 };
 
 export const palettes = { light, dark };

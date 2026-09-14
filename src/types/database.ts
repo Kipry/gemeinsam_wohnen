@@ -253,7 +253,45 @@ export type NotificationPrefs = {
   shopping: boolean;
   expenses: boolean;
   calendar: boolean;
+  waste: boolean;
   /** Stunde der Putz-Erinnerung (Ortszeit); vor 12 Uhr für heute, sonst für morgen */
   reminder_hour: number;
   updated_at: string;
+};
+
+/** Ein Punkt der Checkliste einer Routine */
+export type TaskChecklistItem = {
+  id: string;
+  task_id: string;
+  position: number;
+  label: string;
+  created_at: string;
+};
+
+/** Abgehakter Punkt — pro Aufgabe und Fälligkeitstag, damit Neuplanen ihn nicht löscht */
+export type TaskChecklistCheck = {
+  task_id: string;
+  due_date: string;
+  item_id: string;
+  checked_by: string | null;
+  checked_at: string;
+};
+
+export type WasteBin = {
+  id: string;
+  household_id: string;
+  kind: "rest" | "papier" | "bio" | "gelb" | "sonstige";
+  label: string;
+  first_date: string;
+  interval_weeks: number;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type WasteBinChange = {
+  bin_id: string;
+  original_date: string;
+  new_date: string | null;
+  created_by: string | null;
+  created_at: string;
 };

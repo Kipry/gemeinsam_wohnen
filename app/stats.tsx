@@ -7,7 +7,7 @@ import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { makeStyles, useColors } from "../src/lib/theme";
-import { Card, Empty, Loading, Muted, PullToRefresh, Screen } from "../src/components/ui";
+import { Card, Empty, Loading, Muted, pullToRefresh, Screen } from "../src/components/ui";
 import type { ChoreStats } from "../src/types/database";
 
 export default function StatsScreen() {
@@ -49,7 +49,7 @@ export default function StatsScreen() {
   return (
     <Screen>
       <FlatList
-        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={pullToRefresh(refreshing, onRefresh)}
         data={rows}
         keyExtractor={(item) => item.user_id}
         contentContainerStyle={{ padding: 16, gap: 12 }}

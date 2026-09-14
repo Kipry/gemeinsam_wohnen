@@ -17,7 +17,7 @@ import {
   type ReviewChore,
   type ReviewExpense,
 } from "../src/lib/monthReview";
-import { Card, Muted, PullToRefresh } from "../src/components/ui";
+import { Card, Muted, pullToRefresh } from "../src/components/ui";
 
 export default function MonthReview() {
   const styles = useStyles();
@@ -119,7 +119,7 @@ export default function MonthReview() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={pullToRefresh(refreshing, onRefresh)}
     >
       <View style={styles.monthHeader}>
         <TouchableOpacity onPress={() => shiftMonth(-1)} style={styles.monthButton}>

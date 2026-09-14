@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Alert, FlatList, SectionList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 import { useRefresh } from "../../src/lib/useRefresh";
 import { useAuth } from "../../src/lib/AuthProvider";
@@ -10,19 +11,22 @@ import { useTeams } from "../../src/lib/useTeams";
 import { usePlaceholders } from "../../src/lib/usePlaceholders";
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { addDays, formatShort, todayISO, weekLabel } from "../../src/lib/dates";
-import { Button, Chip, Empty, Loading, PullToRefresh, Screen, UndoToast } from "../../src/components/ui";
+import { Button, Chip, Empty, Loading, pullToRefresh, Screen, UndoToast } from "../../src/components/ui";
 import { rhythmLabel } from "../../src/lib/taskLabels";
 import { hapticSuccess, hapticTap } from "../../src/lib/haptics";
 import { PushPrompt } from "../../src/components/PushPrompt";
+import { onChoreCompleted } from "../../src/lib/choreEvents";
+import { useWaste } from "../../src/lib/useWaste";
+import { collectionsBetween, joinLabels } from "../../src/lib/waste";
 import type { Task, TaskOccurrence, TaskRotationEntry } from "../../src/types/database";
 
 type Occurrence = TaskOccurrence & {
-  tasks: Pick<Task, "title" | "points" | "assignment_mode">;
+  tasks: Pick<Task, "title" | "points" | "assignment_mode"> & { task_checklist_items: { id: string }[] };
 };
 
 type TaskView = "alle" | "meine" | "plan" | "routinen";
 
-type Routine = Task & { task_rotation: TaskRotationEntry[] };
+type Routine = Task & { task_rotation: TaskRotationEntry[]; task_checklist_items: { id: string }[] };
 
 function formatDue(dueDate: string): string {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -52,27 +56,51 @@ export default function TasksScreen() {
   const [view, setView] = useState<TaskView>("alle");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
+  /** Abgehakte Punkte je „Aufgabe|Tag" */
+  const [checkCounts, setCheckCounts] = useState<Map<string, number>>(new Map());
+  const { bins, changes } = useWaste(activeHousehold?.id);
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
     const [occurrenceResult, routineResult] = await Promise.all([
       supabase
         .from("task_occurrences")
-        .select("*, tasks(title, points, assignment_mode)")
+        .select("*, tasks(title, points, assignment_mode, task_checklist_items!task_checklist_items_task_id_fkey(id))")
         .eq("household_id", activeHousehold.id)
         .eq("status", "open")
         .order("due_date", { ascending: true }),
       supabase
         .from("tasks")
-        .select("*, task_rotation(*)")
+        .select("*, task_rotation(*), task_checklist_items!task_checklist_items_task_id_fkey(id)")
         .eq("household_id", activeHousehold.id)
         .order("title"),
     ]);
 
     if (occurrenceResult.error) console.error(occurrenceResult.error);
     if (routineResult.error) console.error(routineResult.error);
+    const loadedRoutines = (routineResult.data as Routine[]) ?? [];
     setOccurrences((occurrenceResult.data as Occurrence[]) ?? []);
-    setRoutines((routineResult.data as Routine[]) ?? []);
+    setRoutines(loadedRoutines);
+
+    const withChecklist = loadedRoutines.filter((routine) => routine.task_checklist_items.length > 0);
+    if (withChecklist.length > 0) {
+      const { data: checkRows } = await supabase
+        .from("task_checklist_checks")
+        .select("task_id, due_date")
+        .in(
+          "task_id",
+          withChecklist.map((routine) => routine.id)
+        )
+        .gte("due_date", addDays(todayISO(), -60));
+      const counts = new Map<string, number>();
+      for (const row of (checkRows as { task_id: string; due_date: string }[]) ?? []) {
+        const key = `${row.task_id}|${row.due_date}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      setCheckCounts(counts);
+    } else {
+      setCheckCounts(new Map());
+    }
     setLoading(false);
   }, [activeHousehold]);
   const { refreshing, onRefresh } = useRefresh(load);
@@ -94,6 +122,29 @@ export default function TasksScreen() {
       load();
     }, [load])
   );
+
+  // Auf dem Aufgaben-Bildschirm erledigt: hier die gewohnte Rückgängig-Leiste zeigen
+  useEffect(
+    () =>
+      onChoreCompleted(({ occurrenceId, title }) => {
+        setUndo({ id: occurrenceId, title });
+        load();
+      }),
+    [load]
+  );
+
+  // Müllabfuhr im Blick behalten: abends rausstellen, morgens abgeholt
+  const wasteHint = useMemo(() => {
+    const today = todayISO();
+    const upcoming = collectionsBetween(bins, changes, today, addDays(today, 1)).filter(
+      (entry) => entry.status !== "cancelled"
+    );
+    const tomorrowLabels = upcoming.filter((entry) => entry.date !== today).map((entry) => entry.bin.label);
+    const todayLabels = upcoming.filter((entry) => entry.date === today).map((entry) => entry.bin.label);
+    if (tomorrowLabels.length > 0) return `Heute Abend rausstellen: ${joinLabels(tomorrowLabels)}`;
+    if (todayLabels.length > 0 && new Date().getHours() < 12) return `Heute wird abgeholt: ${joinLabels(todayLabels)}`;
+    return null;
+  }, [bins, changes]);
 
   const myTeamIds = useMemo(
     () => teams.filter((t) => t.member_ids.includes(session?.user.id ?? "")).map((t) => t.id),
@@ -235,11 +286,19 @@ export default function TasksScreen() {
         <Chip label="Routinen" selected={view === "routinen"} onPress={() => setView("routinen")} />
       </View>
 
+      {wasteHint && (
+        <TouchableOpacity style={styles.wasteBanner} onPress={() => router.push("/calendar")}>
+          <Ionicons name="trash" size={16} color={colors.subtext} />
+          <Text style={styles.wasteText}>{wasteHint}</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
+        </TouchableOpacity>
+      )}
+
       <PushPrompt />
 
       {view === "routinen" ? (
         <FlatList
-          refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={pullToRefresh(refreshing, onRefresh)}
           data={sortedRoutines}
           keyExtractor={(routine) => routine.id}
           contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 90, gap: 10 }}
@@ -275,6 +334,13 @@ export default function TasksScreen() {
                 <Text style={styles.meta} numberOfLines={2}>
                   {assignmentSummary(routine)}
                 </Text>
+                {routine.task_checklist_items.length > 0 && (
+                  <Text style={styles.meta}>
+                    <Ionicons name="checkbox-outline" size={12} color={colors.subtext} /> Checkliste mit{" "}
+                    {routine.task_checklist_items.length}{" "}
+                    {routine.task_checklist_items.length === 1 ? "Punkt" : "Punkten"}
+                  </Text>
+                )}
                 {routine.active && next && (
                   <Text style={styles.routineNext}>
                     Als Nächstes: {formatDue(next.due_date)} · {assigneeLabel(next)}
@@ -286,7 +352,7 @@ export default function TasksScreen() {
         />
       ) : (
       <SectionList
-        refreshControl={<PullToRefresh refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={pullToRefresh(refreshing, onRefresh)}
         sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 90 }}
@@ -298,16 +364,32 @@ export default function TasksScreen() {
         renderItem={({ item }) => {
           const overdue = item.due_date < todayISO();
           const mine = isMine(item);
+          const itemCount = item.tasks.task_checklist_items.length;
+          const checkedCount = checkCounts.get(`${item.task_id}|${item.due_date}`) ?? 0;
           return (
             <View style={[styles.card, overdue && styles.cardOverdue]}>
               <TouchableOpacity
                 style={{ flex: 1, gap: 2 }}
-                onPress={() => router.push(`/task/${item.task_id}`)}
+                onPress={() =>
+                  router.push({ pathname: "/chore/[taskId]", params: { taskId: item.task_id, date: item.due_date } })
+                }
               >
                 <Text style={styles.title}>{item.tasks.title}</Text>
                 <Text style={[styles.meta, overdue && { color: colors.dangerText }]}>
                   {formatDue(item.due_date)} · {assigneeLabel(item)} · {item.tasks.points} Pkt
                 </Text>
+                {itemCount > 0 && (
+                  <View style={styles.progressRow}>
+                    <Ionicons
+                      name={checkedCount === itemCount ? "checkbox" : "checkbox-outline"}
+                      size={13}
+                      color={checkedCount > 0 ? colors.successText : colors.subtext}
+                    />
+                    <Text style={[styles.meta, checkedCount > 0 && { color: colors.successText }]}>
+                      {checkedCount > 0 ? `${checkedCount} von ${itemCount} abgehakt` : `Checkliste · ${itemCount} Punkte`}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
               <Button
                 title="Erledigt"
@@ -359,6 +441,21 @@ const useStyles = makeStyles((colors) => ({
   title: { fontSize: 16, fontWeight: "600", color: colors.text, flexShrink: 1 },
   meta: { fontSize: 13, color: colors.subtext },
   routineCount: { fontSize: 13, color: colors.subtext, paddingBottom: 2 },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  wasteBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  wasteText: { flex: 1, fontSize: 14, color: colors.text },
   routineCard: {
     backgroundColor: colors.card,
     borderRadius: 12,

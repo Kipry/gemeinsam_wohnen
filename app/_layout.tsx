@@ -82,6 +82,10 @@ export default function RootLayout() {
             <Stack.Screen name="stats" options={{ title: "Statistik" }} />
             <Stack.Screen name="delete-account" options={{ title: "Konto löschen" }} />
             <Stack.Screen name="notifications" options={{ title: "Mitteilungen" }} />
+            <Stack.Screen name="chore/[taskId]" options={{ title: "Aufgabe" }} />
+            <Stack.Screen name="waste" options={{ title: "Müllabfuhr" }} />
+            <Stack.Screen name="waste-bin" options={{ title: "Tonne", presentation: "modal" }} />
+            <Stack.Screen name="waste-change" options={{ title: "Abholung", presentation: "modal" }} />
           </Stack>
         </HouseholdProvider>
       </AuthProvider>
