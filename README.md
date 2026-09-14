@@ -10,7 +10,7 @@ Fairness-Statistik (wer hat wie viel im Haushalt gemacht).
 | Bereich | Was drin ist |
 | --- | --- |
 | **Login** | E-Mail + Passwort, „Mit Apple anmelden" (iOS) |
-| **WGs** | WG erstellen oder beitreten — per Einladungslink, QR-Code oder 6-stelligem Code. Ein Account kann in mehreren WGs sein |
+| **WGs** | WG erstellen oder beitreten — per Einladungslink, QR-Code oder 6-stelligem Code. Nach dem Gründen führt ein Assistent durch Mitbewohner und Putzplan: noch nicht beigetretene Mitbewohner werden als Platzhalter vorgemerkt und stehen sofort in der Rotation; wer beitritt, wählt „Ich bin Lisa" und übernimmt Platz und Termine. Ein Account kann in mehreren WGs sein |
 | **Putzplan** | Wiederkehrende Aufgaben mit Punkten, Intervall und optional festem Wochentag. Zuteilung wahlweise: *wer mag*, *reihum an Personen*, *reihum an Teams*, *feste Person*. Termine werden vier Wochen im Voraus geplant — Ansicht „Plan" zeigt sie nach Wochen gruppiert. Vorlagen für die häufigsten WG-Aufgaben. Abhaken ist rückgängig zu machen, Aufgaben lassen sich bearbeiten, pausieren und löschen |
 | **Teams** | Putz-Teams anlegen und Mitglieder zuordnen — Aufgaben können reihum an ganze Teams gehen |
 | **Tracking** | Statistik pro Person: erledigte Aufgaben, Punkte, Pünktlichkeitsquote, offene und überfällige Zuweisungen, Vergleich zum WG-Durchschnitt |
@@ -69,6 +69,7 @@ ausschalten.
 ```
 profiles ─┬─ household_members ─── households
           │                            │
+          │                            ├── household_placeholders
           │                            ├── teams ── team_members
           │                            ├── tasks ── task_rotation
           │                            │        └── task_occurrences   (Termine + Erledigung)
@@ -85,13 +86,13 @@ Views: `chore_stats_view` (Putz-Tracking), `expense_balance_view` (Salden),
 
 **Sicherheit:** Auf allen Tabellen ist Row Level Security aktiv — man sieht ausschließlich
 Daten der eigenen WGs. Schreibvorgänge, die mehrere Tabellen betreffen oder geprüft werden
-müssen, laufen über Datenbankfunktionen: `create_household`, `join_household_by_code`,
-`create_task`, `complete_occurrence`, `create_expense`.
+müssen, laufen über Datenbankfunktionen (z.B. `create_household`, `join_household_by_code`,
+`create_task`, `complete_occurrence`, `create_expense`, `claim_placeholder`).
 
 Beträge werden durchgängig als Cent (`bigint`) gespeichert, nie als Fließkommazahl.
 
 Der Supabase-Security-Advisor meldet für diese Funktionen Warnungen („SECURITY DEFINER
-function executable") — das ist hier beabsichtigt: die fünf RPCs prüfen intern die
+function executable") — das ist hier beabsichtigt: jede dieser RPCs prüft intern die
 Mitgliedschaft, und die Hilfsfunktionen `is_household_member` / `is_household_owner` /
 `shares_household_with` beantworten ausschließlich Fragen über den Aufrufer selbst.
 Offen ist dagegen noch: *Leaked Password Protection* in Authentication → Policies

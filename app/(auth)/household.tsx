@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Redirect } from "expo-router";
+import { router } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
@@ -31,9 +31,9 @@ export default function HouseholdSetup() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (activeHousehold) {
-    return <Redirect href="/" />;
-  }
+  // Kein automatisches Weiterleiten, wenn schon eine WG aktiv ist: dieser
+  // Screen dient auch "Weitere WG erstellen / beitreten" unter Mehr. Die
+  // frühere Weiterleitung hat genau diesen Knopf wirkungslos gemacht.
 
   const createHousehold = async () => {
     if (!session || !name.trim()) return;
@@ -52,6 +52,7 @@ export default function HouseholdSetup() {
 
     await refresh();
     setActiveHousehold(data as Household);
+    router.replace("/onboarding");
   };
 
   const joinHousehold = async () => {
@@ -72,6 +73,7 @@ export default function HouseholdSetup() {
     await AsyncStorage.removeItem(PENDING_INVITE_KEY);
     await refresh();
     setActiveHousehold(data as Household);
+    router.replace("/claim");
   };
 
   return (

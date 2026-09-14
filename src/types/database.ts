@@ -58,6 +58,18 @@ export type TaskRotationEntry = {
   position: number;
   user_id: string | null;
   team_id: string | null;
+  placeholder_id: string | null;
+};
+
+/** Mitbewohner, der noch nicht beigetreten ist, aber schon im Putzplan steht */
+export type HouseholdPlaceholder = {
+  id: string;
+  household_id: string;
+  name: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+  created_by: string;
+  created_at: string;
 };
 
 export type TaskOccurrence = {
@@ -67,6 +79,7 @@ export type TaskOccurrence = {
   due_date: string;
   assigned_to: string | null;
   assigned_team_id: string | null;
+  assigned_placeholder_id: string | null;
   rotation_position: number | null;
   status: "open" | "done" | "skipped";
   completed_by: string | null;

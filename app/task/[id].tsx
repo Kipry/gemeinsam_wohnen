@@ -6,6 +6,7 @@ import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
+import { usePlaceholders } from "../../src/lib/usePlaceholders";
 import { TaskForm, type TaskFormInitial, type TaskFormValues } from "../../src/components/TaskForm";
 import { Button, ErrorText, Loading, Muted } from "../../src/components/ui";
 import type { Task, TaskRotationEntry } from "../../src/types/database";
@@ -18,6 +19,7 @@ export default function TaskDetail() {
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { teams } = useTeams(activeHousehold?.id);
+  const { placeholders } = usePlaceholders(activeHousehold?.id);
   const [task, setTask] = useState<LoadedTask | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +120,7 @@ export default function TaskDetail() {
     assignment_mode: task.assignment_mode,
     rotation: [...task.task_rotation]
       .sort((a, b) => a.position - b.position)
-      .map((entry) => entry.user_id ?? entry.team_id ?? "")
+      .map((entry) => entry.user_id ?? entry.team_id ?? entry.placeholder_id ?? "")
       .filter(Boolean),
     fixed_assignee: task.fixed_assignee,
     skip_absent: task.skip_absent,
@@ -131,6 +133,7 @@ export default function TaskDetail() {
       <TaskForm
         members={members}
         teams={teams}
+        placeholders={placeholders}
         currentUserId={session.user.id}
         initial={initial}
         submitLabel="Änderungen speichern"

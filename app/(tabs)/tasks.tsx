@@ -6,6 +6,7 @@ import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
+import { usePlaceholders } from "../../src/lib/usePlaceholders";
 import { colors } from "../../src/lib/theme";
 import { addDays, formatShort, todayISO, weekLabel } from "../../src/lib/dates";
 import { Button, Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
@@ -36,6 +37,7 @@ export default function TasksScreen() {
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { teams } = useTeams(activeHousehold?.id);
+  const { placeholders } = usePlaceholders(activeHousehold?.id);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<TaskView>("alle");
@@ -83,7 +85,8 @@ export default function TasksScreen() {
     (occurrence: Occurrence) =>
       occurrence.assigned_to === session?.user.id ||
       (occurrence.assigned_team_id !== null && myTeamIds.includes(occurrence.assigned_team_id)) ||
-      (!occurrence.assigned_to && !occurrence.assigned_team_id),
+      // "Wer mag" nur, wenn wirklich niemand zugeteilt ist — auch kein Platzhalter
+      (!occurrence.assigned_to && !occurrence.assigned_team_id && !occurrence.assigned_placeholder_id),
     [session, myTeamIds]
   );
 
@@ -114,6 +117,10 @@ export default function TasksScreen() {
     if (occurrence.assigned_team_id) {
       const team = teams.find((t) => t.id === occurrence.assigned_team_id);
       return team ? `Team ${team.name}` : "Team";
+    }
+    if (occurrence.assigned_placeholder_id) {
+      const placeholder = placeholders.find((entry) => entry.id === occurrence.assigned_placeholder_id);
+      return placeholder ? `${placeholder.name} (noch nicht dabei)` : "Wer mag";
     }
     return "Wer mag";
   };

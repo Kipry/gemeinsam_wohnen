@@ -51,7 +51,8 @@ export default function JoinScreen() {
       await AsyncStorage.removeItem(PENDING_INVITE_KEY);
       await refresh();
       setActiveHousehold(data as Household);
-      router.replace("/(tabs)/tasks");
+      // Hat der Gründer schon einen Platz vorbereitet, dort übernehmen
+      router.replace("/claim");
     };
 
     run();

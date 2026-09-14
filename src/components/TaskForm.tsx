@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { colors } from "../lib/theme";
 import { Button, Chip, ErrorText, Input, Muted, SectionTitle } from "./ui";
-import type { AssignmentMode, Profile } from "../types/database";
+import type { AssignmentMode, HouseholdPlaceholder, Profile } from "../types/database";
 import type { TeamWithMembers } from "../lib/useTeams";
 
 const MODES: { value: AssignmentMode; label: string; hint: string }[] = [
@@ -22,7 +22,7 @@ const MODES: { value: AssignmentMode; label: string; hint: string }[] = [
 ];
 
 /** Häufige WG-Aufgaben, damit man nicht vor einem leeren Formular sitzt. */
-const TEMPLATES: { title: string; points: number; interval_days: number }[] = [
+export const TEMPLATES: { title: string; points: number; interval_days: number }[] = [
   { title: "Müll rausbringen", points: 1, interval_days: 7 },
   { title: "Bad putzen", points: 3, interval_days: 7 },
   { title: "Küche putzen", points: 3, interval_days: 7 },
@@ -67,6 +67,7 @@ export type TaskFormInitial = {
 export function TaskForm({
   members,
   teams,
+  placeholders = [],
   currentUserId,
   initial,
   submitLabel,
@@ -76,6 +77,8 @@ export function TaskForm({
 }: {
   members: Profile[];
   teams: TeamWithMembers[];
+  /** Noch nicht beigetretene Mitbewohner — dürfen schon in der Rotation stehen */
+  placeholders?: HouseholdPlaceholder[];
   currentUserId: string;
   initial?: TaskFormInitial;
   submitLabel: string;
@@ -129,7 +132,11 @@ export function TaskForm({
       assignment_mode: mode,
       rotation:
         mode === "rotation_member"
-          ? rotation.map((id) => ({ user_id: id }))
+          ? rotation.map((id) =>
+              placeholders.some((placeholder) => placeholder.id === id)
+                ? { placeholder_id: id }
+                : { user_id: id }
+            )
           : mode === "rotation_team"
             ? rotation.map((id) => ({ team_id: id }))
             : [],
@@ -142,7 +149,13 @@ export function TaskForm({
   const rotationSource =
     mode === "rotation_team"
       ? teams.map((team) => ({ id: team.id, label: team.name }))
-      : members.map((member) => ({ id: member.id, label: nameFor(member.id) }));
+      : [
+          ...members.map((member) => ({ id: member.id, label: nameFor(member.id) })),
+          ...placeholders.map((placeholder) => ({
+            id: placeholder.id,
+            label: `${placeholder.name} (noch nicht dabei)`,
+          })),
+        ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

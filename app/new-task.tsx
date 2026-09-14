@@ -5,6 +5,7 @@ import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { useTeams } from "../src/lib/useTeams";
+import { usePlaceholders } from "../src/lib/usePlaceholders";
 import { TaskForm, type TaskFormValues } from "../src/components/TaskForm";
 import { ErrorText, Loading } from "../src/components/ui";
 
@@ -13,6 +14,7 @@ export default function NewTask() {
   const { activeHousehold } = useHousehold();
   const { members, loading } = useHouseholdMembers(activeHousehold?.id);
   const { teams } = useTeams(activeHousehold?.id);
+  const { placeholders } = usePlaceholders(activeHousehold?.id);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +49,7 @@ export default function NewTask() {
       <TaskForm
         members={members}
         teams={teams}
+        placeholders={placeholders}
         currentUserId={session.user.id}
         submitLabel="Aufgabe anlegen"
         saving={saving}

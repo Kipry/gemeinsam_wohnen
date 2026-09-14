@@ -35,6 +35,8 @@ export default function RootLayout() {
           <Stack.Screen name="invite" options={{ title: "Einladen" }} />
           <Stack.Screen name="join" options={{ headerShown: false }} />
           <Stack.Screen name="more" options={{ title: "Mehr" }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="claim" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen
             name="new-event"
             options={{ title: "Neuer Termin", presentation: "modal" }}
