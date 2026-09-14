@@ -6,7 +6,7 @@ import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { formatShort, todayISO } from "../src/lib/dates";
 import { ExpenseForm, type ExpenseFormValues } from "../src/components/ExpenseForm";
 import { ReceiptPicker } from "../src/components/ReceiptPicker";
@@ -15,6 +15,8 @@ import { Empty, ErrorText, Loading } from "../src/components/ui";
 import type { ShoppingItem, ShoppingTrip } from "../src/types/database";
 
 export default function FinishTrip() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members, loading: membersLoading } = useHouseholdMembers(activeHousehold?.id);
@@ -105,7 +107,7 @@ export default function FinishTrip() {
   return (
     <>
       <View style={styles.header}>
-        <Ionicons name="basket" size={18} color={colors.primary} />
+        <Ionicons name="basket" size={18} color={colors.tint} />
         <Text style={styles.headerText}>
           {items.length} {items.length === 1 ? "Artikel" : "Artikel"} ·{" "}
           {items
@@ -141,7 +143,7 @@ export default function FinishTrip() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -153,4 +155,4 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   headerText: { flex: 1, fontSize: 13, color: colors.subtext },
-});
+}));

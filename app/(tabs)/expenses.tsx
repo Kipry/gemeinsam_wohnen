@@ -6,7 +6,7 @@ import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
-import { colors } from "../../src/lib/theme";
+import { makeStyles, useColors } from "../../src/lib/theme";
 import { formatCents, suggestSettlements } from "../../src/lib/money";
 import { Button, Card, Empty, Loading, Screen, SectionTitle } from "../../src/components/ui";
 import type { Expense, ExpenseBalance } from "../../src/types/database";
@@ -14,6 +14,8 @@ import type { Expense, ExpenseBalance } from "../../src/types/database";
 type ExpenseWithShares = Expense & { expense_shares: { user_id: string; share_cents: number }[] };
 
 export default function ExpensesScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -115,7 +117,7 @@ export default function ExpensesScreen() {
             {booked > 0 && (
               <TouchableOpacity onPress={() => router.push("/recurring")}>
                 <Card style={styles.bookedCard}>
-                  <Ionicons name="repeat" size={18} color={colors.primary} />
+                  <Ionicons name="repeat" size={18} color={colors.tint} />
                   <Text style={styles.bookedText}>
                     {booked === 1 ? "1 feste Kosten-Buchung" : `${booked} feste Kosten-Buchungen`}{" "}
                     ergänzt
@@ -129,7 +131,7 @@ export default function ExpensesScreen() {
               <Text
                 style={[
                   styles.balanceValue,
-                  { color: myBalance >= 0 ? colors.success : colors.danger },
+                  { color: myBalance >= 0 ? colors.successText : colors.dangerText },
                 ]}
               >
                 {myBalance >= 0 ? "+" : ""}
@@ -207,7 +209,7 @@ export default function ExpensesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   bookedCard: { flexDirection: "row", alignItems: "center", gap: 8 },
   bookedText: { flex: 1, fontSize: 13, color: colors.text },
   balanceLabel: { fontSize: 13, color: colors.subtext },
@@ -233,4 +235,4 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   fabText: { color: "#fff", fontSize: 28, lineHeight: 30 },
-});
+}));

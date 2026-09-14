@@ -1,6 +1,6 @@
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../lib/theme";
+import { makeStyles, useColors } from "../lib/theme";
 import { cameraAvailable, pickReceipt, type PickedReceipt } from "../lib/receipts";
 import { SectionTitle } from "./ui";
 
@@ -12,6 +12,8 @@ export function ReceiptPicker({
   value: PickedReceipt | null;
   onChange: (next: PickedReceipt | null) => void;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const choose = async (source: "camera" | "library") => {
     const picked = await pickReceipt(source);
     if (picked) {
@@ -40,12 +42,12 @@ export function ReceiptPicker({
         <View style={styles.buttons}>
           {cameraAvailable && (
             <TouchableOpacity style={styles.button} onPress={() => choose("camera")}>
-              <Ionicons name="camera-outline" size={18} color={colors.primary} />
+              <Ionicons name="camera-outline" size={18} color={colors.tint} />
               <Text style={styles.buttonText}>Foto aufnehmen</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.button} onPress={() => choose("library")}>
-            <Ionicons name="image-outline" size={18} color={colors.primary} />
+            <Ionicons name="image-outline" size={18} color={colors.tint} />
             <Text style={styles.buttonText}>{cameraAvailable ? "Aus Galerie" : "Bild wählen"}</Text>
           </TouchableOpacity>
         </View>
@@ -54,7 +56,7 @@ export function ReceiptPicker({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   block: { gap: 8 },
   buttons: { flexDirection: "row", gap: 8 },
   button: {
@@ -70,7 +72,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  buttonText: { fontSize: 14, fontWeight: "600", color: colors.primary },
+  buttonText: { fontSize: 14, fontWeight: "600", color: colors.tint },
   previewRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -84,4 +86,4 @@ const styles = StyleSheet.create({
   thumbnail: { width: 48, height: 48, borderRadius: 6, backgroundColor: colors.background },
   previewText: { flex: 1, fontSize: 14, color: colors.text },
   remove: { padding: 4 },
-});
+}));

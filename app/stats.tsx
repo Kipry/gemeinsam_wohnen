@@ -5,11 +5,13 @@ import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { Card, Empty, Loading, Muted, Screen } from "../src/components/ui";
 import type { ChoreStats } from "../src/types/database";
 
 export default function StatsScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -83,7 +85,7 @@ export default function StatsScreen() {
               </View>
 
               <View style={styles.statsRow}>
-                <Text style={[styles.diff, { color: diff >= 0 ? colors.success : colors.danger }]}>
+                <Text style={[styles.diff, { color: diff >= 0 ? colors.successText : colors.dangerText }]}>
                   {diff >= 0 ? "+" : ""}
                   {diff.toFixed(1)} ggü. Schnitt
                 </Text>
@@ -93,7 +95,7 @@ export default function StatsScreen() {
               <View style={styles.statsRow}>
                 <Text style={styles.stat}>{item.open_assigned} offen zugeteilt</Text>
                 {item.overdue_assigned > 0 && (
-                  <Text style={[styles.stat, { color: colors.danger, fontWeight: "700" }]}>
+                  <Text style={[styles.stat, { color: colors.dangerText, fontWeight: "700" }]}>
                     {item.overdue_assigned} überfällig
                   </Text>
                 )}
@@ -106,7 +108,7 @@ export default function StatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   name: { fontSize: 16, fontWeight: "700", color: colors.text },
   points: { fontSize: 13, color: colors.subtext },
@@ -115,4 +117,4 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: "row", justifyContent: "space-between" },
   diff: { fontSize: 12, fontWeight: "600" },
   stat: { fontSize: 12, color: colors.subtext },
-});
+}));

@@ -16,7 +16,7 @@ import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
-import { colors } from "../../src/lib/theme";
+import { makeStyles, useColors } from "../../src/lib/theme";
 import { addDays, todayISO } from "../../src/lib/dates";
 import { Chip } from "../../src/components/ui";
 import type { ChatKind, ChatMessage, ChatReceipt } from "../../src/types/database";
@@ -35,6 +35,8 @@ const EVENT_ROUTE: Record<string, (id: string) => string> = {
 };
 
 export default function ChatScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -272,7 +274,7 @@ export default function ChatScreen() {
 
       {openRequests.length > 0 && (
         <View style={styles.openBar}>
-          <Ionicons name="hand-left" size={14} color={colors.primary} />
+          <Ionicons name="hand-left" size={14} color={colors.tint} />
           <Text style={styles.openText}>
             {openRequests.length} offene {openRequests.length === 1 ? "Bitte" : "Bitten"}
           </Text>
@@ -322,7 +324,7 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   pinnedBar: {
     flexDirection: "row",
@@ -343,7 +345,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  openText: { fontSize: 13, color: colors.primary, fontWeight: "600" },
+  openText: { fontSize: 13, color: colors.tint, fontWeight: "600" },
   bubbleRow: { gap: 2 },
   sender: { fontSize: 12, color: colors.subtext, marginLeft: 4 },
   bubble: {
@@ -362,7 +364,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: colors.card,
   },
-  announcementLabel: { fontSize: 11, fontWeight: "700", color: colors.primary, marginBottom: 4 },
+  announcementLabel: { fontSize: 11, fontWeight: "700", color: colors.tint, marginBottom: 4 },
   bubbleText: { fontSize: 15, color: colors.text },
   eventCard: {
     flexDirection: "row",
@@ -424,4 +426,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sendButtonText: { color: "#fff", fontWeight: "600" },
-});
+}));

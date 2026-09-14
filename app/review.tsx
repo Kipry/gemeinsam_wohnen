@@ -6,7 +6,7 @@ import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
 import { formatMonth, monthName, monthRange } from "../src/lib/dates";
 import {
@@ -18,10 +18,9 @@ import {
 } from "../src/lib/monthReview";
 import { Card, Muted } from "../src/components/ui";
 
-// Eine Farbe pro Diagramm: die Balken zeigen Größe, nicht Zugehörigkeit.
-const BAR_COLOR = colors.primary;
-
 export default function MonthReview() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -224,6 +223,7 @@ export default function MonthReview() {
 
 /** Beschriftung und Wert als Text über dem Balken — der Wert hängt nie an der Farbe allein. */
 function BarRow({ label, value, ratio }: { label: string; value: string; ratio: number }) {
+  const styles = useStyles();
   return (
     <View style={styles.barRow}>
       <View style={styles.barText}>
@@ -241,7 +241,7 @@ function BarRow({ label, value, ratio }: { label: string; value: string; ratio: 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   monthHeader: { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -258,7 +258,8 @@ const styles = StyleSheet.create({
   barValue: { fontSize: 14, color: colors.subtext, fontVariant: ["tabular-nums"] },
   bar: {
     height: 10,
-    backgroundColor: BAR_COLOR,
+    // Eine Farbe pro Diagramm: die Balken zeigen Größe, nicht Zugehörigkeit.
+    backgroundColor: colors.primary,
     // abgerundetes Datenende, gerade an der Grundlinie
     borderTopRightRadius: 4,
     borderBottomRightRadius: 4,
@@ -273,4 +274,4 @@ const styles = StyleSheet.create({
   personNumbers: { alignItems: "flex-end", minWidth: 84 },
   personValue: { fontSize: 15, color: colors.text, fontVariant: ["tabular-nums"] },
   personMeta: { fontSize: 11, color: colors.subtext },
-});
+}));

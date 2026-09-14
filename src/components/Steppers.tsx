@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../lib/theme";
+import { makeStyles, useColors } from "../lib/theme";
 import { addDays, formatShort } from "../lib/dates";
 
 function StepperRow({
@@ -14,6 +14,8 @@ function StepperRow({
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
@@ -76,7 +78,7 @@ export function TimeStepper({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: { flexDirection: "row", alignItems: "center", gap: 10 },
   label: { fontSize: 14, color: colors.subtext, width: 34 },
   button: {
@@ -90,4 +92,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   value: { flex: 1, fontSize: 15, fontWeight: "600", color: colors.text, textAlign: "center" },
-});
+}));

@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../lib/theme";
+import { makeStyles, useColors } from "../lib/theme";
 import { FORMER_MEMBER } from "../lib/useHouseholdMembers";
 import { evaluateAmountExpression } from "../lib/calc";
 import { formatCents, parseAmountToCents, splitByWeights, splitEqually } from "../lib/money";
@@ -64,6 +64,8 @@ export function ExpenseForm({
   /** Zusätzliche Felder, z.B. der Buchungstag bei festen Kosten */
   extraFields?: ReactNode;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const [amount, setAmount] = useState(initial?.amountExpression ?? "");
   // Betrag ist immer das Erste — Keypad offen, solange noch keiner drinsteht
   const [keypadOpen, setKeypadOpen] = useState(!initial?.amountExpression);
@@ -210,7 +212,7 @@ export function ExpenseForm({
                 <Ionicons
                   name={isOn ? "checkbox" : "square-outline"}
                   size={22}
-                  color={isOn ? colors.primary : colors.subtext}
+                  color={isOn ? colors.tint : colors.subtext}
                 />
                 <Text style={styles.checkName}>{nameFor(member.id)}</Text>
 
@@ -286,7 +288,7 @@ export function ExpenseForm({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 10, paddingBottom: 32 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -322,6 +324,6 @@ const styles = StyleSheet.create({
   },
   stepperValue: { fontSize: 15, fontWeight: "600", color: colors.text, minWidth: 16, textAlign: "center" },
   difference: { fontSize: 13, fontWeight: "600" },
-  differenceOk: { color: colors.success },
-  differenceOff: { color: colors.danger },
-});
+  differenceOk: { color: colors.successText },
+  differenceOff: { color: colors.dangerText },
+}));

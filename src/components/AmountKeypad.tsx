@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../lib/theme";
+import { makeStyles, useColors } from "../lib/theme";
 import { applyKey, evaluateAmountExpression, isCalculation } from "../lib/calc";
 import { formatCents } from "../lib/money";
 
@@ -20,6 +20,8 @@ export function AmountKeypad({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   return (
     <View style={styles.keypad}>
       {KEYS.map((row, rowIndex) => (
@@ -57,6 +59,7 @@ export function AmountDisplay({
   onPress?: () => void;
   active?: boolean;
 }) {
+  const styles = useStyles();
   const cents = evaluateAmountExpression(value);
   const showResult = isCalculation(value) && cents !== null;
 
@@ -71,7 +74,7 @@ export function AmountDisplay({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   display: {
     backgroundColor: colors.card,
     borderRadius: 12,
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
   displayLabel: { fontSize: 12, color: colors.subtext },
   displayValue: { fontSize: 32, fontWeight: "700", color: colors.text },
   displayPlaceholder: { color: colors.subtext },
-  displayResult: { fontSize: 15, fontWeight: "600", color: colors.primary },
+  displayResult: { fontSize: 15, fontWeight: "600", color: colors.tint },
   keypad: {
     backgroundColor: colors.card,
     borderTopWidth: 1,
@@ -103,4 +106,4 @@ const styles = StyleSheet.create({
   operatorKey: { backgroundColor: colors.border },
   keyText: { fontSize: 22, color: colors.text, fontWeight: "500" },
   operatorText: { fontWeight: "700" },
-});
+}));

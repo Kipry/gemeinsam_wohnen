@@ -1,7 +1,7 @@
 import { Share, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useHousehold } from "../src/lib/HouseholdProvider";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { Button, Card, Loading, Muted, Screen } from "../src/components/ui";
 
 /** Tiefer Link in die App; das Schema steht in app.json */
@@ -10,6 +10,8 @@ export function inviteLink(code: string): string {
 }
 
 export default function InviteScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { activeHousehold } = useHousehold();
 
   if (!activeHousehold) return <Loading />;
@@ -44,8 +46,8 @@ export default function InviteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   content: { padding: 16, gap: 14 },
   qrCard: { alignItems: "center", gap: 12, paddingVertical: 24 },
-  code: { fontSize: 30, fontWeight: "700", color: colors.primary, letterSpacing: 4 },
-});
+  code: { fontSize: 30, fontWeight: "700", color: colors.tint, letterSpacing: 4 },
+}));

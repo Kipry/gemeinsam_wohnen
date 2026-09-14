@@ -6,7 +6,7 @@ import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
-import { colors } from "../../src/lib/theme";
+import { makeStyles, useColors } from "../../src/lib/theme";
 import { formatLong, formatShort, formatTime } from "../../src/lib/dates";
 import { EVENT_KINDS } from "../../src/lib/eventKinds";
 import { EventForm, type EventFormValues } from "../../src/components/EventForm";
@@ -14,6 +14,8 @@ import { Button, Card, ErrorText, Loading } from "../../src/components/ui";
 import type { CalendarEvent, CalendarEventAttendee } from "../../src/types/database";
 
 export default function EventDetail() {
+  const styles = useStyles();
+  const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
@@ -141,7 +143,7 @@ export default function EventDetail() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Card>
         <View style={styles.kindRow}>
-          <Ionicons name={kind.icon} size={16} color={colors.primary} />
+          <Ionicons name={kind.icon} size={16} color={colors.tint} />
           <Text style={styles.kindLabel}>{kind.label}</Text>
         </View>
         <Text style={styles.title}>{event.title}</Text>
@@ -168,7 +170,7 @@ export default function EventDetail() {
             <Ionicons
               name="checkmark"
               size={18}
-              color={myStatus === "yes" ? "#fff" : colors.success}
+              color={myStatus === "yes" ? "#fff" : colors.successText}
             />
             <Text style={[styles.rsvpText, myStatus === "yes" && styles.rsvpTextActive]}>
               {kind.rsvpLabel}
@@ -200,6 +202,7 @@ export default function EventDetail() {
 }
 
 function AttendeeLine({ label, names }: { label: string; names: string[] }) {
+  const styles = useStyles();
   if (names.length === 0) return null;
   return (
     <Text style={styles.attendeeLine}>
@@ -209,11 +212,11 @@ function AttendeeLine({ label, names }: { label: string; names: string[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   kindRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  kindLabel: { fontSize: 13, fontWeight: "600", color: colors.primary },
+  kindLabel: { fontSize: 13, fontWeight: "600", color: colors.tint },
   title: { fontSize: 22, fontWeight: "700", color: colors.text },
   when: { fontSize: 15, color: colors.text },
   meta: { fontSize: 13, color: colors.subtext },
@@ -237,4 +240,4 @@ const styles = StyleSheet.create({
   rsvpTextActive: { color: "#fff" },
   attendeeLine: { fontSize: 14, color: colors.text },
   attendeeLabel: { color: colors.subtext },
-});
+}));

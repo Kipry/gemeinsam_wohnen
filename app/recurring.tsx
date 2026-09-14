@@ -6,12 +6,14 @@ import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
 import { Button, Card, Empty, Loading, Muted, Screen } from "../src/components/ui";
 import type { RecurringExpense } from "../src/types/database";
 
 export default function RecurringScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -101,7 +103,7 @@ export default function RecurringScreen() {
               <Switch value={item.active} onValueChange={() => toggleActive(item)} />
             </View>
             <TouchableOpacity onPress={() => remove(item)} style={styles.deleteRow}>
-              <Ionicons name="trash-outline" size={15} color={colors.danger} />
+              <Ionicons name="trash-outline" size={15} color={colors.dangerText} />
               <Text style={styles.deleteText}>Löschen</Text>
             </TouchableOpacity>
           </Card>
@@ -115,12 +117,12 @@ export default function RecurringScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   header: { flexDirection: "row", alignItems: "center", gap: 10 },
   title: { fontSize: 16, fontWeight: "600", color: colors.text },
   inactive: { color: colors.subtext, textDecorationLine: "line-through" },
   meta: { fontSize: 13, color: colors.subtext, marginTop: 2 },
   deleteRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  deleteText: { fontSize: 13, color: colors.danger, fontWeight: "600" },
+  deleteText: { fontSize: 13, color: colors.dangerText, fontWeight: "600" },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
-});
+}));

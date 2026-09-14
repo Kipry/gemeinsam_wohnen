@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../lib/theme";
+import { makeStyles, useColors } from "../lib/theme";
 import { getPushStatus, pushSupported, registerPush } from "../lib/push";
 import { Button } from "./ui";
 
@@ -14,6 +14,8 @@ const ASK_AGAIN_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
  * nur ein einziges Mal, ein reflexhaftes „Nicht erlauben" wäre endgültig.
  */
 export function PushPrompt() {
+  const styles = useStyles();
+  const colors = useColors();
   const [visible, setVisible] = useState(false);
   const [asking, setAsking] = useState(false);
 
@@ -41,7 +43,7 @@ export function PushPrompt() {
 
   return (
     <View style={styles.card}>
-      <Ionicons name="notifications" size={22} color={colors.primary} />
+      <Ionicons name="notifications" size={22} color={colors.tint} />
       <View style={styles.body}>
         <Text style={styles.title}>Soll dein Handy Bescheid geben?</Text>
         <Text style={styles.text}>
@@ -57,7 +59,7 @@ export function PushPrompt() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     flexDirection: "row",
     gap: 12,
@@ -74,4 +76,4 @@ const styles = StyleSheet.create({
   text: { fontSize: 13, lineHeight: 18, color: colors.subtext },
   actions: { flexDirection: "row", gap: 8, marginTop: 4 },
   action: { flex: 1 },
-});
+}));

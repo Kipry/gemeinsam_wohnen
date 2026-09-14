@@ -7,7 +7,7 @@ import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
 import { usePlaceholders } from "../../src/lib/usePlaceholders";
-import { colors } from "../../src/lib/theme";
+import { makeStyles, useColors } from "../../src/lib/theme";
 import { addDays, formatShort, todayISO, weekLabel } from "../../src/lib/dates";
 import { Button, Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
 import { rhythmLabel } from "../../src/lib/taskLabels";
@@ -37,6 +37,8 @@ function formatDue(dueDate: string): string {
 }
 
 export default function TasksScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -296,7 +298,7 @@ export default function TasksScreen() {
                 onPress={() => router.push(`/task/${item.task_id}`)}
               >
                 <Text style={styles.title}>{item.tasks.title}</Text>
-                <Text style={[styles.meta, overdue && { color: colors.danger }]}>
+                <Text style={[styles.meta, overdue && { color: colors.dangerText }]}>
                   {formatDue(item.due_date)} · {assigneeLabel(item)} · {item.tasks.points} Pkt
                 </Text>
               </TouchableOpacity>
@@ -325,7 +327,7 @@ export default function TasksScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   filterRow: { flexDirection: "row", gap: 8, padding: 16, paddingBottom: 8 },
   sectionTitle: {
     fontSize: 12,
@@ -381,4 +383,4 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   fabText: { color: "#fff", fontSize: 28, lineHeight: 30 },
-});
+}));

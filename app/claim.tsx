@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { usePlaceholders } from "../src/lib/usePlaceholders";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { ErrorText, Loading, Muted } from "../src/components/ui";
 
 /**
@@ -13,6 +13,8 @@ import { ErrorText, Loading, Muted } from "../src/components/ui";
  * man hier seinen Platz — samt Rotation und bereits geplanten Terminen.
  */
 export default function ClaimScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { activeHousehold } = useHousehold();
   const { placeholders, loading } = usePlaceholders(activeHousehold?.id);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export default function ClaimScreen() {
           onPress={() => claim(placeholder.id)}
           disabled={busyId !== null}
         >
-          <Ionicons name="person-circle" size={28} color={colors.primary} />
+          <Ionicons name="person-circle" size={28} color={colors.tint} />
           <Text style={styles.optionText}>Ich bin {placeholder.name}</Text>
           {busyId === placeholder.id ? (
             <Text style={styles.busy}>…</Text>
@@ -77,7 +79,7 @@ export default function ClaimScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 24, gap: 12, paddingTop: 56 },
   title: { fontSize: 26, fontWeight: "700", color: colors.text },
@@ -95,4 +97,4 @@ const styles = StyleSheet.create({
   optionNew: { backgroundColor: "transparent", borderStyle: "dashed" },
   optionText: { flex: 1, fontSize: 16, fontWeight: "600", color: colors.text },
   busy: { fontSize: 16, color: colors.subtext },
-});
+}));

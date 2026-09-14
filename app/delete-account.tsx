@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
 import { signOutToLogin } from "../src/lib/signOut";
 import { Button, Card, ErrorText, Loading, Muted } from "../src/components/ui";
@@ -22,6 +22,7 @@ function joinNames(names: string[]) {
 }
 
 export default function DeleteAccountScreen() {
+  const styles = useStyles();
   const { session } = useAuth();
   const { households } = useHousehold();
   const [overview, setOverview] = useState<Overview | null>(null);
@@ -162,6 +163,8 @@ export default function DeleteAccountScreen() {
 }
 
 function Bullet({ icon, children }: { icon: keyof typeof Ionicons.glyphMap; children: ReactNode }) {
+  const styles = useStyles();
+  const colors = useColors();
   return (
     <View style={styles.bullet}>
       <Ionicons name={icon} size={18} color={colors.subtext} style={{ marginTop: 1 }} />
@@ -170,7 +173,7 @@ function Bullet({ icon, children }: { icon: keyof typeof Ionicons.glyphMap; chil
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   heading: { fontSize: 16, fontWeight: "700", color: colors.text },
@@ -178,4 +181,4 @@ const styles = StyleSheet.create({
   bulletText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.text },
   warningCard: { borderColor: colors.danger, gap: 6 },
   balanceRow: { fontSize: 14, color: colors.text },
-});
+}));

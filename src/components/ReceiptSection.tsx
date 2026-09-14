@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../lib/theme";
+import { makeStyles, useColors } from "../lib/theme";
 import {
   attachReceipt,
   cameraAvailable,
@@ -32,6 +32,8 @@ export function ReceiptSection({
   path: string | null;
   onChanged: () => void;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -118,18 +120,18 @@ export function ReceiptSection({
           </TouchableOpacity>
           <View style={styles.actions}>
             <TouchableOpacity onPress={chooseSource} style={styles.action}>
-              <Ionicons name="swap-horizontal" size={16} color={colors.primary} />
+              <Ionicons name="swap-horizontal" size={16} color={colors.tint} />
               <Text style={styles.actionText}>Ersetzen</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={remove} style={styles.action}>
-              <Ionicons name="trash-outline" size={16} color={colors.danger} />
-              <Text style={[styles.actionText, { color: colors.danger }]}>Entfernen</Text>
+              <Ionicons name="trash-outline" size={16} color={colors.dangerText} />
+              <Text style={[styles.actionText, { color: colors.dangerText }]}>Entfernen</Text>
             </TouchableOpacity>
           </View>
         </>
       ) : (
         <TouchableOpacity onPress={chooseSource} style={styles.empty}>
-          <Ionicons name="receipt-outline" size={20} color={colors.primary} />
+          <Ionicons name="receipt-outline" size={20} color={colors.tint} />
           <Text style={styles.actionText}>Foto vom Kassenbon hinzufügen</Text>
         </TouchableOpacity>
       )}
@@ -146,13 +148,13 @@ export function ReceiptSection({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   title: { fontSize: 13, fontWeight: "700", color: colors.subtext, textTransform: "uppercase" },
   preview: { width: "100%", height: 200, borderRadius: 8, backgroundColor: colors.background },
   previewLoading: { justifyContent: "center", alignItems: "center" },
   actions: { flexDirection: "row", gap: 16, marginTop: 4 },
   action: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4 },
-  actionText: { fontSize: 14, fontWeight: "600", color: colors.primary },
+  actionText: { fontSize: 14, fontWeight: "600", color: colors.tint },
   empty: {
     flexDirection: "row",
     alignItems: "center",
@@ -172,4 +174,4 @@ const styles = StyleSheet.create({
   },
   full: { width: "100%", height: "85%" },
   closeHint: { position: "absolute", top: 50, right: 20 },
-});
+}));

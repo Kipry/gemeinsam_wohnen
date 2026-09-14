@@ -4,7 +4,7 @@ import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
-import { colors } from "../src/lib/theme";
+import { makeStyles } from "../src/lib/theme";
 import {
   addDays,
   comingWeekend,
@@ -19,6 +19,7 @@ import { DateStepper } from "../src/components/Steppers";
 type Range = { start: string; end: string };
 
 export default function NewAbsence() {
+  const styles = useStyles();
   const { date } = useLocalSearchParams<{ date?: string }>();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
@@ -107,8 +108,8 @@ export default function NewAbsence() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 10, paddingBottom: 40 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-});
+}));

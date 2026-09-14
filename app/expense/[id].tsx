@@ -5,7 +5,7 @@ import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
-import { colors } from "../../src/lib/theme";
+import { makeStyles } from "../../src/lib/theme";
 import { centsToInput, formatCents } from "../../src/lib/money";
 import {
   ExpenseForm,
@@ -22,6 +22,7 @@ type LoadedExpense = Expense & {
 };
 
 export default function ExpenseDetail() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
@@ -176,7 +177,7 @@ export default function ExpenseDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   amount: { fontSize: 32, fontWeight: "700", color: colors.text },
@@ -188,4 +189,4 @@ const styles = StyleSheet.create({
   shareRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
   shareName: { fontSize: 15, color: colors.text },
   sharevalue: { fontSize: 15, color: colors.text, fontVariant: ["tabular-nums"] },
-});
+}));

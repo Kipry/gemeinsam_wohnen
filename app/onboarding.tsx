@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { addDays, todayISO } from "../src/lib/dates";
 import { TEMPLATES } from "../src/components/TaskForm";
 import { intervalLabel } from "../src/lib/taskLabels";
@@ -25,6 +25,8 @@ function joinNames(names: string[]) {
  * niemand sonst beigetreten ist.
  */
 export default function Onboarding() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -184,7 +186,7 @@ export default function Onboarding() {
                   <Ionicons
                     name={isOn ? "checkbox" : "square-outline"}
                     size={22}
-                    color={isOn ? colors.primary : colors.subtext}
+                    color={isOn ? colors.tint : colors.subtext}
                   />
                   <Text style={styles.listTitle}>{template.title}</Text>
                   <Text style={styles.listMeta}>{intervalLabel(template.interval_days)}</Text>
@@ -206,7 +208,7 @@ export default function Onboarding() {
 
       {step === 3 && (
         <>
-          <Ionicons name="checkmark-circle" size={56} color={colors.success} style={{ alignSelf: "center" }} />
+          <Ionicons name="checkmark-circle" size={56} color={colors.successText} style={{ alignSelf: "center" }} />
           <Text style={[styles.title, { textAlign: "center" }]}>Eure WG steht</Text>
           <Muted>
             {createdCount > 0
@@ -224,7 +226,7 @@ export default function Onboarding() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 24, gap: 14, paddingTop: 48, paddingBottom: 48 },
   progress: { flexDirection: "row", gap: 6, justifyContent: "center", marginBottom: 8 },
@@ -273,4 +275,4 @@ const styles = StyleSheet.create({
   },
   listTitle: { flex: 1, fontSize: 15, color: colors.text },
   listMeta: { fontSize: 13, color: colors.subtext },
-});
+}));

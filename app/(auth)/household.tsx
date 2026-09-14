@@ -12,11 +12,12 @@ import { router } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { colors } from "../../src/lib/theme";
+import { makeStyles } from "../../src/lib/theme";
 import type { Household } from "../../src/types/database";
 import { PENDING_INVITE_KEY } from "../join";
 
 export default function HouseholdSetup() {
+  const styles = useStyles();
   const { session } = useAuth();
   const { activeHousehold, refresh, setActiveHousehold } = useHousehold();
   const [name, setName] = useState("");
@@ -115,7 +116,7 @@ export default function HouseholdSetup() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, padding: 24, backgroundColor: colors.background, gap: 16 },
   title: { fontSize: 24, fontWeight: "700", color: colors.text, marginBottom: 8 },
   card: {
@@ -144,5 +145,5 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: colors.primaryText, fontSize: 15, fontWeight: "600" },
   or: { textAlign: "center", color: colors.subtext },
-  error: { color: colors.danger, textAlign: "center" },
-});
+  error: { color: colors.dangerText, textAlign: "center" },
+}));

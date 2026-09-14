@@ -3,7 +3,7 @@ import { AppState, Linking, ScrollView, StyleSheet, Switch, Text, View } from "r
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { getPushStatus, registerPush, type PushStatus } from "../src/lib/push";
 import { Button, Card, Loading, Muted } from "../src/components/ui";
 import type { NotificationPrefs } from "../src/types/database";
@@ -42,6 +42,8 @@ const DEFAULTS: Record<Category, boolean> = {
 };
 
 export default function NotificationsScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const [prefs, setPrefs] = useState<Record<Category, boolean> | null>(null);
   const [status, setStatus] = useState<PushStatus | null>(null);
@@ -124,7 +126,7 @@ export default function NotificationsScreen() {
       )}
       {status === "granted" && (
         <View style={styles.grantedRow}>
-          <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+          <Ionicons name="checkmark-circle" size={18} color={colors.successText} />
           <Text style={styles.grantedText}>Mitteilungen sind auf diesem Gerät an</Text>
         </View>
       )}
@@ -135,7 +137,7 @@ export default function NotificationsScreen() {
             key={category.key}
             style={[styles.row, index < CATEGORIES.length - 1 && styles.rowDivider]}
           >
-            <Ionicons name={category.icon} size={20} color={colors.primary} />
+            <Ionicons name={category.icon} size={20} color={colors.tint} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.rowTitle}>{category.title}</Text>
               <Text style={styles.rowSubtitle}>{category.subtitle}</Text>
@@ -152,7 +154,7 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   heading: { fontSize: 16, fontWeight: "700", color: colors.text },
@@ -162,4 +164,4 @@ const styles = StyleSheet.create({
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   rowTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
   rowSubtitle: { fontSize: 13, color: colors.subtext },
-});
+}));

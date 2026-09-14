@@ -1,7 +1,7 @@
 import { Redirect, Tabs, router } from "expo-router";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../../src/lib/theme";
+import { useColors } from "../../src/lib/theme";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { Loading } from "../../src/components/ui";
@@ -9,6 +9,7 @@ import { Loading } from "../../src/components/ui";
 // "Mehr" liegt als Symbol in der Kopfzeile statt als sechster Tab —
 // mehr als fünf Tabs werden auf dem iPhone zu eng.
 function MoreButton() {
+  const colors = useColors();
   return (
     <TouchableOpacity
       onPress={() => router.push("/more")}
@@ -21,6 +22,7 @@ function MoreButton() {
 }
 
 export default function TabsLayout() {
+  const colors = useColors();
   const { session, loading: authLoading } = useAuth();
   const { activeHousehold, loading: householdLoading } = useHousehold();
 
@@ -42,7 +44,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerTintColor: colors.text,
         headerRight: () => <MoreButton />,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.tint,
         tabBarInactiveTintColor: colors.subtext,
       }}
     >

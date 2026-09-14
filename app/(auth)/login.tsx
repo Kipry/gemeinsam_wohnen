@@ -13,9 +13,11 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Redirect } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
-import { colors } from "../../src/lib/theme";
+import { makeStyles, useColors } from "../../src/lib/theme";
 
 export default function Login() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const [mode, setMode] = useState<"sign_in" | "sign_up">("sign_in");
   const [fullName, setFullName] = useState("");
@@ -164,7 +166,7 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     flex: 1,
     justifyContent: "center",
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonText: { color: colors.primaryText, fontSize: 16, fontWeight: "600" },
-  switchText: { color: colors.primary, textAlign: "center", marginTop: 16 },
-  error: { color: colors.danger, textAlign: "center" },
-  info: { color: colors.success, textAlign: "center" },
-});
+  switchText: { color: colors.tint, textAlign: "center", marginTop: 16 },
+  error: { color: colors.dangerText, textAlign: "center" },
+  info: { color: colors.successText, textAlign: "center" },
+}));

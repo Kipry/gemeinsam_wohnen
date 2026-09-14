@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { colors } from "../lib/theme";
+import { makeStyles } from "../lib/theme";
 import { EVENT_KINDS, EVENT_KIND_ORDER } from "../lib/eventKinds";
 import { Button, Chip, ErrorText, Input, Muted, SectionTitle } from "./ui";
 import { DateStepper, TimeStepper } from "./Steppers";
@@ -29,6 +29,7 @@ export function EventForm({
   onSubmit: (values: EventFormValues) => void;
   footer?: ReactNode;
 }) {
+  const styles = useStyles();
   const [kind, setKind] = useState<EventKind>(initial.kind);
   const [title, setTitle] = useState(initial.title);
   const [note, setNote] = useState(initial.note ?? "");
@@ -131,8 +132,8 @@ export function EventForm({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 10, paddingBottom: 40 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-});
+}));

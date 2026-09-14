@@ -4,10 +4,11 @@ import { supabase } from "../src/lib/supabase";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { useTeams } from "../src/lib/useTeams";
-import { colors } from "../src/lib/theme";
+import { makeStyles } from "../src/lib/theme";
 import { Button, Card, Chip, Empty, Input, Loading, Muted, SectionTitle } from "../src/components/ui";
 
 export default function TeamsScreen() {
+  const styles = useStyles();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { teams, loading, refresh } = useTeams(activeHousehold?.id);
@@ -106,12 +107,12 @@ export default function TeamsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 10, paddingBottom: 40 },
   addRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   teamHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   teamName: { fontSize: 16, fontWeight: "700", color: colors.text },
-  delete: { color: colors.danger, fontSize: 13, fontWeight: "600" },
+  delete: { color: colors.dangerText, fontSize: 13, fontWeight: "600" },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
-});
+}));

@@ -7,7 +7,7 @@ import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { usePlaceholders } from "../src/lib/usePlaceholders";
-import { colors } from "../src/lib/theme";
+import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
 import { signOutToLogin } from "../src/lib/signOut";
 import { Button, Card, Input, SectionTitle } from "../src/components/ui";
@@ -36,6 +36,8 @@ const LINKS = [
 ] as const;
 
 export default function MoreScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold, households, setActiveHousehold, refresh } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -127,7 +129,7 @@ export default function MoreScreen() {
           <Text style={styles.codeLabel}>Einladungscode</Text>
           <Text style={styles.code}>{activeHousehold?.invite_code}</Text>
           <View style={styles.inviteRow}>
-            <Ionicons name="share-outline" size={16} color={colors.primary} />
+            <Ionicons name="share-outline" size={16} color={colors.tint} />
             <Text style={styles.inviteText}>Mitbewohner einladen — Link oder QR-Code</Text>
           </View>
         </Card>
@@ -170,7 +172,7 @@ export default function MoreScreen() {
       {LINKS.map((link) => (
         <TouchableOpacity key={link.href} onPress={() => router.push(link.href)}>
           <Card style={styles.linkCard}>
-            <Ionicons name={link.icon} size={22} color={colors.primary} />
+            <Ionicons name={link.icon} size={22} color={colors.tint} />
             <View style={{ flex: 1 }}>
               <Text style={styles.linkTitle}>{link.title}</Text>
               <Text style={styles.muted}>{link.subtitle}</Text>
@@ -215,15 +217,15 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   householdName: { fontSize: 20, fontWeight: "700", color: colors.text },
   muted: { fontSize: 13, color: colors.subtext },
   codeLabel: { fontSize: 12, color: colors.subtext, marginTop: 8 },
-  code: { fontSize: 26, fontWeight: "700", color: colors.primary, letterSpacing: 3 },
+  code: { fontSize: 26, fontWeight: "700", color: colors.tint, letterSpacing: 3 },
   inviteRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
-  inviteText: { fontSize: 13, color: colors.primary, fontWeight: "600" },
+  inviteText: { fontSize: 13, color: colors.tint, fontWeight: "600" },
   linkCard: { flexDirection: "row", alignItems: "center", gap: 12 },
   linkTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
   householdRow: {
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 10,
   },
-  active: { color: colors.primary, fontWeight: "600" },
+  active: { color: colors.tint, fontWeight: "600" },
   deleteAccount: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 16 },
   deleteAccountText: { fontSize: 14, color: colors.subtext, textDecorationLine: "underline" },
   placeholderWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
@@ -256,4 +258,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-});
+}));

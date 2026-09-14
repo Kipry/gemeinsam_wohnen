@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
-import { colors } from "../src/lib/theme";
+import { makeStyles } from "../src/lib/theme";
 import { Button, ErrorText, Loading, Screen } from "../src/components/ui";
 import type { Household } from "../src/types/database";
 
@@ -17,6 +17,7 @@ export const PENDING_INVITE_KEY = "pending_invite_code";
  * zwischengespeichert und danach im WG-Screen vorausgefüllt.
  */
 export default function JoinScreen() {
+  const styles = useStyles();
   const { code } = useLocalSearchParams<{ code?: string }>();
   const { session, loading: authLoading } = useAuth();
   const { refresh, setActiveHousehold } = useHousehold();
@@ -71,7 +72,7 @@ export default function JoinScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   content: { padding: 24, gap: 14, justifyContent: "center", flex: 1 },
   title: { fontSize: 20, fontWeight: "700", color: colors.text, textAlign: "center" },
-});
+}));

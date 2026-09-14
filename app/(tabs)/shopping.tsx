@@ -14,12 +14,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
-import { colors } from "../../src/lib/theme";
+import { makeStyles, useColors } from "../../src/lib/theme";
 import { AISLE_ORDER, guessCategory, normalizeName } from "../../src/lib/shoppingCategories";
 import { Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
 import type { ShoppingItem, ShoppingTrip } from "../../src/types/database";
 
 export default function ShoppingScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const [items, setItems] = useState<ShoppingItem[]>([]);
@@ -328,7 +330,7 @@ export default function ShoppingScreen() {
         </View>
       ) : (
         <TouchableOpacity style={styles.startTrip} onPress={startTrip}>
-          <Ionicons name="basket-outline" size={18} color={colors.primary} />
+          <Ionicons name="basket-outline" size={18} color={colors.tint} />
           <Text style={styles.startTripText}>Ich kauf ein</Text>
         </TouchableOpacity>
       )}
@@ -367,7 +369,7 @@ export default function ShoppingScreen() {
                 <Ionicons
                   name={bought ? "checkmark-circle" : "ellipse-outline"}
                   size={24}
-                  color={bought ? colors.success : colors.subtext}
+                  color={bought ? colors.successText : colors.subtext}
                 />
               </TouchableOpacity>
 
@@ -425,7 +427,7 @@ export default function ShoppingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   addBox: {
     padding: 16,
     paddingBottom: 10,
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  hint: { fontSize: 13, color: colors.danger },
+  hint: { fontSize: 13, color: colors.dangerText },
   suggestions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   startTrip: {
     flexDirection: "row",
@@ -465,7 +467,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  startTripText: { fontSize: 15, fontWeight: "600", color: colors.primary },
+  startTripText: { fontSize: 15, fontWeight: "600", color: colors.tint },
   tripBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -532,4 +534,4 @@ const styles = StyleSheet.create({
   },
   modalCard: { backgroundColor: colors.card, borderRadius: 14, padding: 20, gap: 12 },
   modalTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
-});
+}));

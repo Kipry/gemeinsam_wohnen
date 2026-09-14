@@ -7,7 +7,7 @@ import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
-import { colors } from "../../src/lib/theme";
+import { makeStyles, useColors } from "../../src/lib/theme";
 import {
   WEEKDAY_HEADER,
   formatLong,
@@ -31,24 +31,17 @@ import type {
 
 type Chore = TaskOccurrence & { tasks: Pick<Task, "title"> };
 
-const DOT = {
-  event: colors.primary,
-  absence: "#F08C00",
-  chore: colors.success,
-};
-
-// Heller Grundton der Balken, damit dunkler Text darauf lesbar bleibt
-const TINT = {
-  event: "#E4E5FD",
-  absence: "#FDEBD5",
-};
-
 const MAX_LANES = 3;
 const LANE_HEIGHT = 16;
 /** Höhe von Tageszahl und Aufgabenpunkt über den Balken */
 const DAY_AREA = 38;
 
 export default function CalendarScreen() {
+  const styles = useStyles();
+  const colors = useColors();
+  const dot = { event: colors.tint, absence: colors.absenceAccent, chore: colors.successText };
+  // Heller (bzw. im Dunkelmodus gedämpfter) Grundton der Balken, Schrift bleibt lesbar
+  const tint = { event: colors.eventTint, absence: colors.absenceTint };
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
@@ -246,7 +239,7 @@ export default function CalendarScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         {awayToday.length > 0 && (
           <View style={styles.awayBanner}>
-            <Ionicons name="airplane" size={14} color={DOT.absence} />
+            <Ionicons name="airplane" size={14} color={dot.absence} />
             <Text style={styles.awayText}>
               Heute nicht da: {awayToday.map((absence) => nameFor(absence.user_id)).join(", ")}
             </Text>
@@ -319,7 +312,7 @@ export default function CalendarScreen() {
                           {Number(iso.slice(8, 10))}
                         </Text>
                       </View>
-                      <View style={[styles.choreDot, hasChore && { backgroundColor: DOT.chore }]} />
+                      <View style={[styles.choreDot, hasChore && { backgroundColor: dot.chore }]} />
                     </TouchableOpacity>
                   );
                 })}
@@ -327,7 +320,7 @@ export default function CalendarScreen() {
                 {/* Balken über den Tageszellen; Tipps gehen durch sie hindurch an den Tag */}
                 <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
                   {layout.segments.map((segment) => {
-                    const accent = segment.kind === "event" ? DOT.event : DOT.absence;
+                    const accent = segment.kind === "event" ? dot.event : dot.absence;
                     return (
                       <View
                         key={`${segment.id}-${weekDays[0]}`}
@@ -343,7 +336,7 @@ export default function CalendarScreen() {
                         <View
                           style={[
                             styles.barFill,
-                            { backgroundColor: TINT[segment.kind] },
+                            { backgroundColor: tint[segment.kind] },
                             // Gerade Kante, wo der Eintrag in die Nachbarwoche weiterläuft
                             !segment.continuesLeft && [
                               styles.barStart,
@@ -386,9 +379,9 @@ export default function CalendarScreen() {
         </View>
 
         <View style={styles.legend}>
-          <LegendBar tint={TINT.event} accent={DOT.event} label="Termin" />
-          <LegendBar tint={TINT.absence} accent={DOT.absence} label="Abwesend" />
-          <Legend color={DOT.chore} label="Deine Aufgabe" />
+          <LegendBar tint={tint.event} accent={dot.event} label="Termin" />
+          <LegendBar tint={tint.absence} accent={dot.absence} label="Abwesend" />
+          <Legend color={dot.chore} label="Deine Aufgabe" />
         </View>
 
         <View style={styles.dayPanel}>
@@ -407,7 +400,7 @@ export default function CalendarScreen() {
                 style={styles.entry}
                 onPress={() => router.push(`/event/${event.id}`)}
               >
-                <Ionicons name={kind.icon} size={18} color={DOT.event} />
+                <Ionicons name={kind.icon} size={18} color={dot.event} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.entryTitle}>{event.title}</Text>
                   <Text style={styles.entryMeta}>
@@ -428,7 +421,7 @@ export default function CalendarScreen() {
 
           {selectedInfo.absences.map((absence) => (
             <View key={absence.id} style={styles.entry}>
-              <Ionicons name="airplane" size={18} color={DOT.absence} />
+              <Ionicons name="airplane" size={18} color={dot.absence} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.entryTitle}>
                   {absence.user_id === session?.user.id ? "Du bist weg" : `${nameFor(absence.user_id)} ist weg`}
@@ -454,7 +447,7 @@ export default function CalendarScreen() {
               style={styles.entry}
               onPress={() => router.push(`/task/${chore.task_id}`)}
             >
-              <Ionicons name="sparkles" size={18} color={DOT.chore} />
+              <Ionicons name="sparkles" size={18} color={dot.chore} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.entryTitle}>{chore.tasks.title}</Text>
                 <Text style={styles.entryMeta}>Du bist dran</Text>
@@ -494,6 +487,7 @@ export default function CalendarScreen() {
 }
 
 function LegendBar({ tint, accent, label }: { tint: string; accent: string; label: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendBar, { backgroundColor: tint, borderLeftColor: accent }]} />
@@ -503,6 +497,7 @@ function LegendBar({ tint, accent, label }: { tint: string; accent: string; labe
 }
 
 function Legend({ color, label }: { color: string; label: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.legendItem}>
       <View style={[styles.dot, { backgroundColor: color }]} />
@@ -511,7 +506,7 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   awayBanner: {
     flexDirection: "row",
@@ -542,7 +537,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     marginLeft: 4,
   },
-  todayButtonText: { fontSize: 13, fontWeight: "600", color: colors.primary },
+  todayButtonText: { fontSize: 13, fontWeight: "600", color: colors.tint },
   weekHeader: { flexDirection: "row", paddingHorizontal: 8 },
   weekHeaderText: {
     flex: 1,
@@ -631,4 +626,4 @@ const styles = StyleSheet.create({
   actionPrimary: { backgroundColor: colors.primary, borderColor: colors.primary },
   actionText: { fontSize: 15, fontWeight: "600", color: colors.text },
   actionPrimaryText: { fontSize: 15, fontWeight: "600", color: "#fff" },
-});
+}));

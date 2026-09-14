@@ -9,33 +9,40 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from "react-native";
-import { colors } from "../lib/theme";
+import { makeStyles, useColors } from "../lib/theme";
 
 export function Screen({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+  const styles = useStyles();
   return <View style={[styles.screen, style]}>{children}</View>;
 }
 
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+  const styles = useStyles();
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <Text style={styles.sectionTitle}>{children}</Text>;
 }
 
 export function Muted({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <Text style={styles.muted}>{children}</Text>;
 }
 
 export function Empty({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <Text style={styles.empty}>{children}</Text>;
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <Text style={styles.error}>{children}</Text>;
 }
 
 export function Loading() {
+  const styles = useStyles();
   return (
     <View style={styles.center}>
       <ActivityIndicator />
@@ -44,6 +51,8 @@ export function Loading() {
 }
 
 export function Input(props: TextInputProps) {
+  const styles = useStyles();
+  const colors = useColors();
   return <TextInput placeholderTextColor={colors.subtext} {...props} style={[styles.input, props.style]} />;
 }
 
@@ -62,6 +71,8 @@ export function Button({
   loading?: boolean;
   style?: ViewStyle;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const background = {
     primary: colors.primary,
     secondary: colors.border,
@@ -94,6 +105,7 @@ export function Chip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <TouchableOpacity style={[styles.chip, selected && styles.chipSelected]} onPress={onPress}>
       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
@@ -116,6 +128,7 @@ export function UndoToast({
   onHide: () => void;
   timeoutMs?: number;
 }) {
+  const styles = useStyles();
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(onHide, timeoutMs);
@@ -149,6 +162,7 @@ export function Row({
   onPress?: () => void;
   onLongPress?: () => void;
 }) {
+  const styles = useStyles();
   const Wrapper: any = onPress || onLongPress ? TouchableOpacity : View;
   return (
     <Wrapper style={styles.row} onPress={onPress} onLongPress={onLongPress}>
@@ -161,7 +175,7 @@ export function Row({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: {
@@ -175,7 +189,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: "700", color: colors.subtext, textTransform: "uppercase" },
   muted: { fontSize: 13, color: colors.subtext },
   empty: { textAlign: "center", color: colors.subtext, marginTop: 32 },
-  error: { color: colors.danger, textAlign: "center" },
+  error: { color: colors.dangerText, textAlign: "center" },
   input: {
     backgroundColor: colors.card,
     borderColor: colors.border,
@@ -221,11 +235,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: colors.text,
+    backgroundColor: colors.toast,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  undoText: { flex: 1, color: "#fff", fontSize: 14 },
-  undoAction: { color: "#fff", fontSize: 14, fontWeight: "700", textDecorationLine: "underline" },
-});
+  undoText: { flex: 1, color: colors.toastText, fontSize: 14 },
+  undoAction: { color: colors.toastText, fontSize: 14, fontWeight: "700", textDecorationLine: "underline" },
+}));

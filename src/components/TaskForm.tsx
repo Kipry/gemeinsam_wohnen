@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
-import { colors } from "../lib/theme";
+import { makeStyles } from "../lib/theme";
 import { FORMER_MEMBER } from "../lib/useHouseholdMembers";
 import { Button, Chip, ErrorText, Input, Muted, SectionTitle } from "./ui";
 import type { AssignmentMode, HouseholdPlaceholder, Profile } from "../types/database";
@@ -87,6 +87,7 @@ export function TaskForm({
   onSubmit: (values: TaskFormValues) => void;
   footer?: ReactNode;
 }) {
+  const styles = useStyles();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [points, setPoints] = useState(initial?.points ?? "1");
   const [intervalDays, setIntervalDays] = useState(initial?.interval_days ?? "7");
@@ -283,12 +284,12 @@ export function TaskForm({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, gap: 10, paddingBottom: 40 },
   twoCol: { flexDirection: "row", gap: 10 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   switchRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 },
   switchLabel: { fontSize: 15, color: colors.text, fontWeight: "600" },
-  link: { color: colors.primary, fontWeight: "600" },
-});
+  link: { color: colors.tint, fontWeight: "600" },
+}));
