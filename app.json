@@ -10,7 +10,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kipry.gemeinsamwohnen",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.kipry.gemeinsamwohnen",
@@ -33,9 +36,18 @@
         "expo-image-picker",
         {
           "photosPermission": "Damit du ein Foto vom Kassenbon an eine Ausgabe hängen kannst.",
-          "cameraPermission": "Damit du den Kassenbon direkt an der Kasse abfotografieren kannst."
+          "cameraPermission": "Damit du den Kassenbon direkt an der Kasse abfotografieren kannst.",
+          "microphonePermission": false
         }
-      ]
-    ]
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "582e9de3-2b76-4547-a082-cb867ad3f5c6"
+      }
+    },
+    "owner": "kipry"
   }
 }
