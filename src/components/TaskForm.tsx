@@ -31,6 +31,17 @@ const TEMPLATES: { title: string; points: number; interval_days: number }[] = [
   { title: "Bad-Handtücher wechseln", points: 1, interval_days: 14 },
 ];
 
+/** 0 = Sonntag, passend zu extract(dow) in Postgres */
+const WEEKDAYS = [
+  { value: 1, label: "Mo" },
+  { value: 2, label: "Di" },
+  { value: 3, label: "Mi" },
+  { value: 4, label: "Do" },
+  { value: 5, label: "Fr" },
+  { value: 6, label: "Sa" },
+  { value: 0, label: "So" },
+];
+
 export type TaskFormValues = {
   title: string;
   points: number;
@@ -39,6 +50,7 @@ export type TaskFormValues = {
   rotation: { user_id?: string; team_id?: string }[];
   fixed_assignee: string | null;
   skip_absent: boolean;
+  weekday: number | null;
 };
 
 export type TaskFormInitial = {
@@ -49,6 +61,7 @@ export type TaskFormInitial = {
   rotation: string[];
   fixed_assignee: string | null;
   skip_absent: boolean;
+  weekday: number | null;
 };
 
 export function TaskForm({
@@ -77,6 +90,7 @@ export function TaskForm({
   const [rotation, setRotation] = useState<string[]>(initial?.rotation ?? []);
   const [fixedAssignee, setFixedAssignee] = useState<string | null>(initial?.fixed_assignee ?? null);
   const [skipAbsent, setSkipAbsent] = useState(initial?.skip_absent ?? true);
+  const [weekday, setWeekday] = useState<number | null>(initial?.weekday ?? null);
   const [error, setError] = useState<string | null>(null);
 
   const nameFor = (id: string) =>
@@ -121,6 +135,7 @@ export function TaskForm({
             : [],
       fixed_assignee: mode === "fixed" ? fixedAssignee : null,
       skip_absent: skipAbsent,
+      weekday,
     });
   };
 
@@ -160,6 +175,23 @@ export function TaskForm({
           <Input value={intervalDays} onChangeText={setIntervalDays} keyboardType="number-pad" />
         </View>
       </View>
+
+      <SectionTitle>Fester Wochentag</SectionTitle>
+      <View style={styles.chipWrap}>
+        <Chip label="Egal" selected={weekday === null} onPress={() => setWeekday(null)} />
+        {WEEKDAYS.map((day) => (
+          <Chip
+            key={day.value}
+            label={day.label}
+            selected={weekday === day.value}
+            onPress={() => setWeekday(day.value)}
+          />
+        ))}
+      </View>
+      <Muted>
+        Mit festem Wochentag bleibt „Müll dienstags" auch dann dienstags, wenn mal später
+        abgehakt wird.
+      </Muted>
 
       <SectionTitle>Zuteilung</SectionTitle>
       <View style={styles.chipWrap}>

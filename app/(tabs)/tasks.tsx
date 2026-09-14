@@ -1,28 +1,34 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, SectionList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../../src/lib/useHouseholdMembers";
 import { useTeams } from "../../src/lib/useTeams";
 import { colors } from "../../src/lib/theme";
+import { addDays, formatShort, todayISO, weekLabel } from "../../src/lib/dates";
 import { Button, Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
 import type { Task, TaskOccurrence } from "../../src/types/database";
 
-type Occurrence = TaskOccurrence & { tasks: Pick<Task, "title" | "points" | "assignment_mode"> };
+type Occurrence = TaskOccurrence & {
+  tasks: Pick<Task, "title" | "points" | "assignment_mode">;
+};
+
+type TaskView = "alle" | "meine" | "plan";
 
 function formatDue(dueDate: string): string {
-  const due = new Date(`${dueDate}T00:00:00`);
+  const due = new Date(`${dueDate}T12:00:00`);
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(12, 0, 0, 0);
   const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
 
   if (days === 0) return "heute fällig";
   if (days === 1) return "morgen fällig";
   if (days === -1) return "1 Tag überfällig";
   if (days < 0) return `${Math.abs(days)} Tage überfällig`;
-  return `in ${days} Tagen`;
+  if (days <= 6) return `in ${days} Tagen`;
+  return formatShort(dueDate);
 }
 
 export default function TasksScreen() {
@@ -32,7 +38,7 @@ export default function TasksScreen() {
   const { teams } = useTeams(activeHousehold?.id);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
   const [loading, setLoading] = useState(true);
-  const [onlyMine, setOnlyMine] = useState(false);
+  const [view, setView] = useState<TaskView>("alle");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
 
@@ -50,6 +56,18 @@ export default function TasksScreen() {
     setLoading(false);
   }, [activeHousehold]);
 
+  // Plan bis zum Horizont auffüllen — ohne das würde eine liegengebliebene
+  // Aufgabe die gesamte Rotation blockieren.
+  useEffect(() => {
+    if (!activeHousehold) return;
+    supabase
+      .rpc("ensure_occurrences", { p_household_id: activeHousehold.id, p_horizon_days: 28 })
+      .then(({ error }) => {
+        if (error) console.error(error);
+        load();
+      });
+  }, [activeHousehold, load]);
+
   useFocusEffect(
     useCallback(() => {
       load();
@@ -61,21 +79,37 @@ export default function TasksScreen() {
     [teams, session]
   );
 
-  const visible = useMemo(() => {
-    if (!onlyMine) return occurrences;
-    return occurrences.filter(
-      (o) =>
-        o.assigned_to === session?.user.id ||
-        (o.assigned_team_id && myTeamIds.includes(o.assigned_team_id)) ||
-        (!o.assigned_to && !o.assigned_team_id)
-    );
-  }, [occurrences, onlyMine, session, myTeamIds]);
+  const isMine = useCallback(
+    (occurrence: Occurrence) =>
+      occurrence.assigned_to === session?.user.id ||
+      (occurrence.assigned_team_id !== null && myTeamIds.includes(occurrence.assigned_team_id)) ||
+      (!occurrence.assigned_to && !occurrence.assigned_team_id),
+    [session, myTeamIds]
+  );
+
+  const sections = useMemo(() => {
+    if (view === "plan") {
+      const byWeek = new Map<string, Occurrence[]>();
+      for (const occurrence of occurrences) {
+        const label = weekLabel(occurrence.due_date);
+        const bucket = byWeek.get(label);
+        if (bucket) bucket.push(occurrence);
+        else byWeek.set(label, [occurrence]);
+      }
+      return [...byWeek.entries()].map(([title, data]) => ({ title, data }));
+    }
+
+    // Alltagsansicht: was jetzt ansteht, nicht der ganze Monat
+    const horizon = addDays(todayISO(), 7);
+    const soon = occurrences.filter((occurrence) => occurrence.due_date <= horizon);
+    const visible = view === "meine" ? soon.filter(isMine) : soon;
+    return visible.length > 0 ? [{ title: "", data: visible }] : [];
+  }, [occurrences, view, isMine]);
 
   const assigneeLabel = (occurrence: Occurrence) => {
     if (occurrence.assigned_to) {
       const isMe = occurrence.assigned_to === session?.user.id;
-      const name = members.find((m) => m.id === occurrence.assigned_to)?.full_name ?? "?";
-      return isMe ? "Du bist dran" : name;
+      return isMe ? "Du bist dran" : members.find((m) => m.id === occurrence.assigned_to)?.full_name ?? "?";
     }
     if (occurrence.assigned_team_id) {
       const team = teams.find((t) => t.id === occurrence.assigned_team_id);
@@ -111,24 +145,33 @@ export default function TasksScreen() {
 
   if (loading) return <Loading />;
 
+  const emptyText =
+    view === "meine"
+      ? "Nichts für dich offen. 🎉"
+      : view === "plan"
+        ? "Noch keine Aufgaben geplant."
+        : "Diese Woche ist nichts offen.";
+
   return (
     <Screen>
       <View style={styles.filterRow}>
-        <Chip label="Alle" selected={!onlyMine} onPress={() => setOnlyMine(false)} />
-        <Chip label="Für mich" selected={onlyMine} onPress={() => setOnlyMine(true)} />
+        <Chip label="Alle" selected={view === "alle"} onPress={() => setView("alle")} />
+        <Chip label="Für mich" selected={view === "meine"} onPress={() => setView("meine")} />
+        <Chip label="Plan" selected={view === "plan"} onPress={() => setView("plan")} />
       </View>
 
-      <FlatList
-        data={visible}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10 }}
-        ListEmptyComponent={
-          <Empty>
-            {onlyMine ? "Nichts für dich offen. 🎉" : "Keine offenen Aufgaben. Leg unten eine an."}
-          </Empty>
+        contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 90 }}
+        stickySectionHeadersEnabled={false}
+        ListEmptyComponent={<Empty>{emptyText}</Empty>}
+        renderSectionHeader={({ section }) =>
+          section.title ? <Text style={styles.sectionTitle}>{section.title}</Text> : null
         }
         renderItem={({ item }) => {
-          const overdue = item.due_date < new Date().toISOString().slice(0, 10);
+          const overdue = item.due_date < todayISO();
+          const mine = isMine(item);
           return (
             <View style={[styles.card, overdue && styles.cardOverdue]}>
               <TouchableOpacity
@@ -142,7 +185,7 @@ export default function TasksScreen() {
               </TouchableOpacity>
               <Button
                 title="Erledigt"
-                variant="success"
+                variant={mine ? "success" : "secondary"}
                 loading={busyId === item.id}
                 onPress={() => markDone(item)}
               />
@@ -166,12 +209,21 @@ export default function TasksScreen() {
 
 const styles = StyleSheet.create({
   filterRow: { flexDirection: "row", gap: 8, padding: 16, paddingBottom: 8 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.subtext,
+    textTransform: "uppercase",
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
   card: {
     backgroundColor: colors.card,
     borderRadius: 12,
     borderColor: colors.border,
     borderWidth: 1,
     padding: 14,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,

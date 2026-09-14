@@ -56,6 +56,7 @@ export default function TaskDetail() {
       p_rotation: values.rotation,
       p_fixed_assignee: values.fixed_assignee,
       p_skip_absent: values.skip_absent,
+      p_weekday: values.weekday,
       p_active: active,
     });
     setSaving(false);
@@ -121,6 +122,7 @@ export default function TaskDetail() {
       .filter(Boolean),
     fixed_assignee: task.fixed_assignee,
     skip_absent: task.skip_absent,
+    weekday: task.weekday,
   };
 
   return (

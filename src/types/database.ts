@@ -44,6 +44,9 @@ export type Task = {
   assignment_mode: AssignmentMode;
   fixed_assignee: string | null;
   skip_absent: boolean;
+  /** Fester Wochentag (0=Sonntag .. 6=Samstag), null = kein Anker */
+  weekday: number | null;
+  current_position: number | null;
   active: boolean;
   created_by: string;
   created_at: string;

@@ -30,6 +30,23 @@ export function formatRange(startISO: string, endISO: string): string {
   return startISO === endISO ? formatShort(startISO) : `${formatShort(startISO)} – ${formatShort(endISO)}`;
 }
 
+/** Montag der Woche, in der das Datum liegt. */
+export function startOfWeek(iso: string): string {
+  const date = new Date(`${iso}T12:00:00`);
+  const offset = (date.getDay() + 6) % 7;
+  return addDays(iso, -offset);
+}
+
+/** "Diese Woche", "Nächste Woche" oder "Woche ab Mo, 28.09." */
+export function weekLabel(iso: string): string {
+  const weekStart = startOfWeek(iso);
+  const thisWeek = startOfWeek(todayISO());
+
+  if (weekStart === thisWeek) return "Diese Woche";
+  if (weekStart === addDays(thisWeek, 7)) return "Nächste Woche";
+  return `Woche ab ${formatShort(weekStart)}`;
+}
+
 /** Das kommende Wochenende (Samstag bis Sonntag), heute eingeschlossen. */
 export function comingWeekend(): { start: string; end: string } {
   const today = new Date();

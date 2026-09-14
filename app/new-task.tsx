@@ -29,6 +29,7 @@ export default function NewTask() {
       p_rotation: values.rotation,
       p_fixed_assignee: values.fixed_assignee,
       p_skip_absent: values.skip_absent,
+      p_weekday: values.weekday,
     });
     setSaving(false);
 
