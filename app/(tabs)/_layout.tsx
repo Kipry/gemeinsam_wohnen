@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../src/lib/theme";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
+import { Loading } from "../../src/components/ui";
 
 // "Mehr" liegt als Symbol in der Kopfzeile statt als sechster Tab —
 // mehr als fünf Tabs werden auf dem iPhone zu eng.
@@ -20,8 +21,14 @@ function MoreButton() {
 }
 
 export default function TabsLayout() {
-  const { session } = useAuth();
-  const { activeHousehold } = useHousehold();
+  const { session, loading: authLoading } = useAuth();
+  const { activeHousehold, loading: householdLoading } = useHousehold();
+
+  // Erst entscheiden, wenn Sitzung und WGs geladen sind — sonst landet ein
+  // direkt geöffneter Tab (Link, Push-Benachrichtigung) bei "WG einrichten".
+  if (authLoading || (session && householdLoading)) {
+    return <Loading />;
+  }
 
   if (!session) {
     return <Redirect href="/(auth)/login" />;

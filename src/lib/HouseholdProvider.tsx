@@ -34,12 +34,19 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [activeHousehold, setActiveHouseholdState] = useState<Household | null>(null);
   const [loading, setLoading] = useState(true);
+  // Für wen zuletzt geladen wurde. Wechselt die Sitzung, gilt das sofort im
+  // selben Render als "lädt" — nicht erst, wenn der Effekt neu gelaufen ist.
+  // Sonst sieht ein direkt geöffneter Tab kurz "keine WG" und leitet fälschlich
+  // zur WG-Einrichtung um.
+  const [loadedFor, setLoadedFor] = useState<string | null | undefined>(undefined);
+  const currentUserId = session?.user.id ?? null;
 
   const refresh = useCallback(async () => {
     if (!session) {
       setHouseholds([]);
       setActiveHouseholdState(null);
       setLoading(false);
+      setLoadedFor(null);
       return;
     }
 
@@ -52,6 +59,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     if (error) {
       console.error("Failed to load households", error);
       setLoading(false);
+      setLoadedFor(session.user.id);
       return;
     }
 
@@ -64,7 +72,10 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     const restored = loaded.find((h) => h.id === storedId);
     setActiveHouseholdState(restored ?? loaded[0] ?? null);
     setLoading(false);
+    setLoadedFor(session.user.id);
   }, [session]);
+
+  const effectiveLoading = loading || loadedFor !== currentUserId;
 
   useEffect(() => {
     refresh();
@@ -77,7 +88,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
   return (
     <HouseholdContext.Provider
-      value={{ households, activeHousehold, loading, setActiveHousehold, refresh }}
+      value={{ households, activeHousehold, loading: effectiveLoading, setActiveHousehold, refresh }}
     >
       {children}
     </HouseholdContext.Provider>

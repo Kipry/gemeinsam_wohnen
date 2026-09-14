@@ -19,6 +19,7 @@ import {
   todayISO,
 } from "../../src/lib/dates";
 import { EVENT_KINDS } from "../../src/lib/eventKinds";
+import { layoutWeek, type SpanItem } from "../../src/lib/calendarLayout";
 import { Loading, UndoToast } from "../../src/components/ui";
 import type {
   Absence,
@@ -35,6 +36,17 @@ const DOT = {
   absence: "#F08C00",
   chore: colors.success,
 };
+
+// Heller Grundton der Balken, damit dunkler Text darauf lesbar bleibt
+const TINT = {
+  event: "#E4E5FD",
+  absence: "#FDEBD5",
+};
+
+const MAX_LANES = 3;
+const LANE_HEIGHT = 16;
+/** Höhe von Tageszahl und Aufgabenpunkt über den Balken */
+const DAY_AREA = 38;
 
 export default function CalendarScreen() {
   const { session } = useAuth();
@@ -162,6 +174,34 @@ export default function CalendarScreen() {
     [events, absences, myChores]
   );
 
+  const weeks = useMemo(
+    () => Array.from({ length: grid.length / 7 }, (_, index) => grid.slice(index * 7, index * 7 + 7)),
+    [grid]
+  );
+
+  const spanItems = useMemo<SpanItem[]>(
+    () => [
+      ...events.map((event) => ({
+        id: event.id,
+        kind: "event" as const,
+        start: event.starts_on,
+        end: event.ends_on,
+        label: event.title,
+      })),
+      ...absences.map((absence) => ({
+        id: absence.id,
+        kind: "absence" as const,
+        start: absence.start_date,
+        end: absence.end_date,
+        label:
+          absence.user_id === session?.user.id
+            ? "Du"
+            : members.find((member) => member.id === absence.user_id)?.full_name ?? "?",
+      })),
+    ],
+    [events, absences, members, session]
+  );
+
   const shiftMonth = (delta: number) => {
     setCursor((prev) => {
       const date = new Date(prev.year, prev.month + delta, 1);
@@ -235,53 +275,119 @@ export default function CalendarScreen() {
         </View>
 
         <View style={styles.grid}>
-          {grid.map((iso) => {
-            const info = dayInfo(iso);
-            const inMonth = isInMonth(iso, cursor.year, cursor.month);
-            const isToday = iso === today;
-            const isSelected = iso === selected;
+          {weeks.map((weekDays) => {
+            const layout = layoutWeek(spanItems, weekDays, MAX_LANES);
+            const hasHidden = layout.hidden.some((count) => count > 0);
+            const rowHeight = Math.max(
+              48,
+              DAY_AREA + layout.laneCount * LANE_HEIGHT + (hasHidden ? 13 : 0) + 4
+            );
+
             return (
-              <TouchableOpacity
-                key={iso}
-                style={styles.cell}
-                onPress={() => {
-                  setSelected(iso);
-                  if (!inMonth) {
-                    const date = new Date(`${iso}T12:00:00`);
-                    setCursor({ year: date.getFullYear(), month: date.getMonth() });
-                  }
-                }}
-              >
-                <View
-                  style={[
-                    styles.dayCircle,
-                    isToday && styles.dayToday,
-                    isSelected && styles.daySelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.dayNumber,
-                      !inMonth && styles.dayOutside,
-                      isSelected && styles.dayNumberSelected,
-                    ]}
-                  >
-                    {Number(iso.slice(8, 10))}
-                  </Text>
+              <View key={weekDays[0]} style={[styles.week, { height: rowHeight }]}>
+                {weekDays.map((iso) => {
+                  const inMonth = isInMonth(iso, cursor.year, cursor.month);
+                  const isToday = iso === today;
+                  const isSelected = iso === selected;
+                  const hasChore = myChores.some((chore) => chore.due_date === iso);
+                  return (
+                    <TouchableOpacity
+                      key={iso}
+                      style={styles.cell}
+                      onPress={() => {
+                        setSelected(iso);
+                        if (!inMonth) {
+                          const date = new Date(`${iso}T12:00:00`);
+                          setCursor({ year: date.getFullYear(), month: date.getMonth() });
+                        }
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.dayCircle,
+                          isToday && styles.dayToday,
+                          isSelected && styles.daySelected,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.dayNumber,
+                            !inMonth && styles.dayOutside,
+                            isSelected && styles.dayNumberSelected,
+                          ]}
+                        >
+                          {Number(iso.slice(8, 10))}
+                        </Text>
+                      </View>
+                      <View style={[styles.choreDot, hasChore && { backgroundColor: DOT.chore }]} />
+                    </TouchableOpacity>
+                  );
+                })}
+
+                {/* Balken über den Tageszellen; Tipps gehen durch sie hindurch an den Tag */}
+                <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
+                  {layout.segments.map((segment) => {
+                    const accent = segment.kind === "event" ? DOT.event : DOT.absence;
+                    return (
+                      <View
+                        key={`${segment.id}-${weekDays[0]}`}
+                        style={[
+                          styles.bar,
+                          {
+                            top: DAY_AREA + segment.lane * LANE_HEIGHT,
+                            left: `${(segment.startCol / 7) * 100}%`,
+                            width: `${((segment.endCol - segment.startCol + 1) / 7) * 100}%`,
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.barFill,
+                            { backgroundColor: TINT[segment.kind] },
+                            // Gerade Kante, wo der Eintrag in die Nachbarwoche weiterläuft
+                            !segment.continuesLeft && [
+                              styles.barStart,
+                              { borderLeftColor: accent },
+                            ],
+                            !segment.continuesRight && styles.barEnd,
+                          ]}
+                        >
+                          {segment.kind === "absence" && (
+                            <Ionicons name="airplane" size={9} color={colors.text} />
+                          )}
+                          <Text numberOfLines={1} style={styles.barText}>
+                            {segment.label}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                  {layout.hidden.map((count, col) =>
+                    count > 0 ? (
+                      <Text
+                        key={`more-${col}`}
+                        style={[
+                          styles.moreText,
+                          {
+                            left: `${(col / 7) * 100}%`,
+                            top: DAY_AREA + layout.laneCount * LANE_HEIGHT,
+                          },
+                        ]}
+                      >
+                        +{count}
+                      </Text>
+                    ) : null
+                  )}
                 </View>
-                <View style={styles.dots}>
-                  {info.events.length > 0 && <View style={[styles.dot, { backgroundColor: DOT.event }]} />}
-                  {info.absences.length > 0 && <View style={[styles.dot, { backgroundColor: DOT.absence }]} />}
-                  {info.chores.length > 0 && <View style={[styles.dot, { backgroundColor: DOT.chore }]} />}
-                </View>
-              </TouchableOpacity>
+              </View>
             );
           })}
         </View>
 
         <View style={styles.legend}>
-          <Legend color={DOT.event} label="Termin" />
-          <Legend color={DOT.absence} label="Abwesend" />
+          <LegendBar tint={TINT.event} accent={DOT.event} label="Termin" />
+          <LegendBar tint={TINT.absence} accent={DOT.absence} label="Abwesend" />
           <Legend color={DOT.chore} label="Deine Aufgabe" />
         </View>
 
@@ -387,6 +493,15 @@ export default function CalendarScreen() {
   );
 }
 
+function LegendBar({ tint, accent, label }: { tint: string; accent: string; label: string }) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendBar, { backgroundColor: tint, borderLeftColor: accent }]} />
+      <Text style={styles.legendText}>{label}</Text>
+    </View>
+  );
+}
+
 function Legend({ color, label }: { color: string; label: string }) {
   return (
     <View style={styles.legendItem}>
@@ -437,15 +552,42 @@ const styles = StyleSheet.create({
     color: colors.subtext,
     paddingVertical: 4,
   },
-  grid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 8 },
-  cell: { width: `${100 / 7}%`, alignItems: "center", paddingVertical: 3, height: 50 },
-  dayCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: "center", alignItems: "center" },
+  grid: { paddingHorizontal: 8 },
+  week: { flexDirection: "row", position: "relative" },
+  // Zelle über die volle Zeilenhöhe, damit auch Tipps auf einen Balken den Tag wählen
+  cell: { flex: 1, alignItems: "center", paddingTop: 3 },
+  choreDot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+  bar: { position: "absolute", height: LANE_HEIGHT - 2 },
+  barFill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 3,
+    overflow: "hidden",
+  },
+  barStart: {
+    marginLeft: 2,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 4,
+    borderBottomLeftRadius: 4,
+  },
+  barEnd: { marginRight: 2, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+  barText: { flex: 1, fontSize: 10, color: colors.text },
+  moreText: {
+    position: "absolute",
+    width: `${100 / 7}%`,
+    textAlign: "center",
+    fontSize: 10,
+    color: colors.subtext,
+  },
+  legendBar: { width: 16, height: 8, borderLeftWidth: 3, borderRadius: 2 },
+  dayCircle: { width: 28, height: 28, borderRadius: 14, justifyContent: "center", alignItems: "center" },
   dayToday: { borderWidth: 1.5, borderColor: colors.primary },
   daySelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   dayNumber: { fontSize: 15, color: colors.text },
   dayOutside: { color: colors.border },
   dayNumberSelected: { color: "#fff", fontWeight: "700" },
-  dots: { flexDirection: "row", gap: 3, height: 6, marginTop: 3 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   legend: { flexDirection: "row", justifyContent: "center", gap: 14, paddingVertical: 8 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
