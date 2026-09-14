@@ -3,12 +3,14 @@ import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "../src/lib/AuthProvider";
 import { HouseholdProvider } from "../src/lib/HouseholdProvider";
 import { colors } from "../src/lib/theme";
+import { PushListener } from "../src/components/PushListener";
 
 export default function RootLayout() {
   return (
     <AuthProvider>
       <HouseholdProvider>
         <StatusBar style="auto" />
+        <PushListener />
         <Stack screenOptions={{ headerTintColor: colors.text }}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -50,6 +52,7 @@ export default function RootLayout() {
           <Stack.Screen name="teams" options={{ title: "Teams" }} />
           <Stack.Screen name="stats" options={{ title: "Statistik" }} />
           <Stack.Screen name="delete-account" options={{ title: "Konto löschen" }} />
+          <Stack.Screen name="notifications" options={{ title: "Mitteilungen" }} />
         </Stack>
       </HouseholdProvider>
     </AuthProvider>

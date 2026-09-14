@@ -11,6 +11,7 @@ import { colors } from "../../src/lib/theme";
 import { addDays, formatShort, todayISO, weekLabel } from "../../src/lib/dates";
 import { Button, Chip, Empty, Loading, Screen, UndoToast } from "../../src/components/ui";
 import { rhythmLabel } from "../../src/lib/taskLabels";
+import { PushPrompt } from "../../src/components/PushPrompt";
 import type { Task, TaskOccurrence, TaskRotationEntry } from "../../src/types/database";
 
 type Occurrence = TaskOccurrence & {
@@ -226,6 +227,8 @@ export default function TasksScreen() {
         <Chip label="Plan" selected={view === "plan"} onPress={() => setView("plan")} />
         <Chip label="Routinen" selected={view === "routinen"} onPress={() => setView("routinen")} />
       </View>
+
+      <PushPrompt />
 
       {view === "routinen" ? (
         <FlatList

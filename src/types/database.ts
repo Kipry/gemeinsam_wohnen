@@ -244,3 +244,14 @@ export type ExpenseBalance = {
   owed_cents: number;
   net_cents: number;
 };
+
+/** Welche Mitteilungen jemand bekommen möchte (fehlt die Zeile: alle an) */
+export type NotificationPrefs = {
+  user_id: string;
+  chores: boolean;
+  chat: boolean;
+  shopping: boolean;
+  expenses: boolean;
+  calendar: boolean;
+  updated_at: string;
+};

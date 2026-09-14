@@ -27,6 +27,12 @@ const LINKS = [
     subtitle: "Miete, Strom, Streaming",
   },
   { href: "/teams", icon: "people", title: "Teams", subtitle: "Putz-Teams verwalten" },
+  {
+    href: "/notifications",
+    icon: "notifications",
+    title: "Mitteilungen",
+    subtitle: "Was dein Handy dir meldet",
+  },
 ] as const;
 
 export default function MoreScreen() {
@@ -79,8 +85,8 @@ export default function MoreScreen() {
       .select("net_cents")
       .eq("household_id", household.id)
       .eq("user_id", session.user.id)
-      .maybeSingle();
-    const net = data?.net_cents ?? 0;
+      .limit(1);
+    const net = data?.[0]?.net_cents ?? 0;
     const balanceHint =
       net > 0
         ? `\n\nDu bekommst noch ${formatCents(net)} — am besten vorher ausgleichen.`
