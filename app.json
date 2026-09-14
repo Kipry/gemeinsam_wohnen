@@ -28,7 +28,14 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Damit du ein Foto vom Kassenbon an eine Ausgabe hängen kannst.",
+          "cameraPermission": "Damit du den Kassenbon direkt an der Kasse abfotografieren kannst."
+        }
+      ]
     ]
   }
 }

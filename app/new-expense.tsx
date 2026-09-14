@@ -1,24 +1,33 @@
 import { useState } from "react";
 import { router } from "expo-router";
+import { Alert } from "react-native";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
+import { attachReceipt, type PickedReceipt } from "../src/lib/receipts";
 import { ExpenseForm, type ExpenseFormValues } from "../src/components/ExpenseForm";
+import { ReceiptPicker } from "../src/components/ReceiptPicker";
 import { ErrorText, Loading } from "../src/components/ui";
 
 export default function NewExpense() {
   const { session } = useAuth();
   const { activeHousehold } = useHousehold();
   const { members, loading } = useHouseholdMembers(activeHousehold?.id);
+  const [receipt, setReceipt] = useState<PickedReceipt | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (loading || !session || !activeHousehold) return <Loading />;
 
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/expenses");
+  };
+
   const save = async (values: ExpenseFormValues) => {
     setSaving(true);
-    const { error: rpcError } = await supabase.rpc("create_expense", {
+    const { data, error: rpcError } = await supabase.rpc("create_expense", {
       p_household_id: activeHousehold.id,
       p_title: values.title,
       p_amount_cents: values.amount_cents,
@@ -28,14 +37,33 @@ export default function NewExpense() {
       p_category: values.category,
       p_note: values.note,
     });
-    setSaving(false);
 
-    if (rpcError) {
-      setError(rpcError.message);
+    if (rpcError || !data) {
+      setSaving(false);
+      setError(rpcError?.message ?? "Ausgabe konnte nicht gespeichert werden");
       return;
     }
-    if (router.canGoBack()) router.back();
-    else router.replace("/(tabs)/expenses");
+
+    const expenseId = (data as { id: string }).id;
+
+    if (receipt) {
+      try {
+        await attachReceipt(activeHousehold.id, expenseId, receipt);
+      } catch (uploadError: any) {
+        // Die Ausgabe ist gespeichert, nur der Beleg fehlt. Nicht im Formular
+        // bleiben — ein zweiter Tipp auf "Speichern" würde sie doppelt anlegen.
+        setSaving(false);
+        Alert.alert(
+          "Beleg nicht hochgeladen",
+          `Die Ausgabe ist gespeichert. Den Beleg kannst du in der Ausgabe nachreichen.\n\n${uploadError?.message ?? ""}`
+        );
+        router.replace(`/expense/${expenseId}`);
+        return;
+      }
+    }
+
+    setSaving(false);
+    leave();
   };
 
   return (
@@ -47,6 +75,7 @@ export default function NewExpense() {
         submitLabel="Ausgabe speichern"
         saving={saving}
         onSubmit={save}
+        extraFields={<ReceiptPicker value={receipt} onChange={setReceipt} />}
       />
     </>
   );

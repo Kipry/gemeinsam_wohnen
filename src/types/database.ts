@@ -188,6 +188,8 @@ export type Expense = {
   created_at: string;
   updated_at: string | null;
   deleted_at: string | null;
+  /** Pfad im privaten Storage-Bucket "receipts" */
+  receipt_path: string | null;
 };
 
 export type ExpenseShare = {

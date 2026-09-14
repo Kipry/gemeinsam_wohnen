@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
@@ -9,6 +9,8 @@ import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { colors } from "../src/lib/theme";
 import { formatShort, todayISO } from "../src/lib/dates";
 import { ExpenseForm, type ExpenseFormValues } from "../src/components/ExpenseForm";
+import { ReceiptPicker } from "../src/components/ReceiptPicker";
+import { attachReceipt, type PickedReceipt } from "../src/lib/receipts";
 import { Empty, ErrorText, Loading } from "../src/components/ui";
 import type { ShoppingItem, ShoppingTrip } from "../src/types/database";
 
@@ -21,6 +23,7 @@ export default function FinishTrip() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<PickedReceipt | null>(null);
 
   const load = useCallback(async () => {
     if (!activeHousehold || !session) return;
@@ -61,7 +64,7 @@ export default function FinishTrip() {
 
   const save = async (values: ExpenseFormValues) => {
     setSaving(true);
-    const { error: rpcError } = await supabase.rpc("finish_shopping_trip", {
+    const { data, error: rpcError } = await supabase.rpc("finish_shopping_trip", {
       p_trip_id: trip.id,
       p_total_cents: values.amount_cents,
       p_paid_by: values.paid_by,
@@ -70,12 +73,31 @@ export default function FinishTrip() {
       p_split_mode: values.split_mode,
       p_store: trip.store,
     });
-    setSaving(false);
 
-    if (rpcError) {
-      setError(rpcError.message);
+    if (rpcError || !data) {
+      setSaving(false);
+      setError(rpcError?.message ?? "Einkauf konnte nicht abgerechnet werden");
       return;
     }
+
+    const expenseId = (data as { id: string }).id;
+
+    if (receipt && activeHousehold) {
+      try {
+        await attachReceipt(activeHousehold.id, expenseId, receipt);
+      } catch (uploadError: any) {
+        // Abgerechnet ist schon — nicht zurück ins Formular, sonst doppelt
+        setSaving(false);
+        Alert.alert(
+          "Beleg nicht hochgeladen",
+          `Der Einkauf ist abgerechnet. Den Beleg kannst du in der Ausgabe nachreichen.\n\n${uploadError?.message ?? ""}`
+        );
+        router.replace(`/expense/${expenseId}`);
+        return;
+      }
+    }
+
+    setSaving(false);
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/shopping");
   };
@@ -113,6 +135,7 @@ export default function FinishTrip() {
         submitLabel="Als Ausgabe eintragen"
         saving={saving}
         onSubmit={save}
+        extraFields={<ReceiptPicker value={receipt} onChange={setReceipt} />}
       />
     </>
   );

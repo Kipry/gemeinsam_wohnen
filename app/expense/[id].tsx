@@ -14,6 +14,7 @@ import {
   type SplitMode,
 } from "../../src/components/ExpenseForm";
 import { Button, Card, ErrorText, Loading } from "../../src/components/ui";
+import { ReceiptSection } from "../../src/components/ReceiptSection";
 import type { Expense } from "../../src/types/database";
 
 type LoadedExpense = Expense & {
@@ -159,6 +160,13 @@ export default function ExpenseDetail() {
             </View>
           ))}
       </Card>
+
+      <ReceiptSection
+        expenseId={expense.id}
+        householdId={expense.household_id}
+        path={expense.receipt_path}
+        onChanged={load}
+      />
 
       {error && <ErrorText>{error}</ErrorText>}
 

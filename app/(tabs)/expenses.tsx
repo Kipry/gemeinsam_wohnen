@@ -189,6 +189,9 @@ export default function ExpensesScreen() {
                     {formatCents(myShare)}
                   </Text>
                 </View>
+                {item.receipt_path && (
+                  <Ionicons name="receipt-outline" size={16} color={colors.subtext} />
+                )}
                 <Text style={styles.expenseAmount}>{formatCents(item.amount_cents)}</Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
               </Card>
