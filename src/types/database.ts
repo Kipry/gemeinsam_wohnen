@@ -34,8 +34,11 @@ export type Team = {
 };
 
 export type TeamMember = {
+  id: string;
   team_id: string;
-  user_id: string;
+  /** Entweder eine Person oder ein vorgemerkter Mitbewohner */
+  user_id: string | null;
+  placeholder_id: string | null;
 };
 
 export type Task = {

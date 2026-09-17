@@ -3,6 +3,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
+import { usePlaceholders } from "../src/lib/usePlaceholders";
 import { useTeams } from "../src/lib/useTeams";
 import { makeStyles } from "../src/lib/theme";
 import { Button, Card, Chip, Empty, Input, Loading, Muted, SectionTitle } from "../src/components/ui";
@@ -12,6 +13,7 @@ export default function TeamsScreen() {
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { teams, loading, refresh } = useTeams(activeHousehold?.id);
+  const { placeholders } = usePlaceholders(activeHousehold?.id);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -35,6 +37,23 @@ export default function TeamsScreen() {
     const { error } = isMember
       ? await supabase.from("team_members").delete().eq("team_id", teamId).eq("user_id", userId)
       : await supabase.from("team_members").insert({ team_id: teamId, user_id: userId });
+
+    if (error) {
+      Alert.alert("Fehler", error.message);
+      return;
+    }
+    refresh();
+  };
+
+  // Vorgemerkte Mitbewohner dürfen schon in ein Team; beim Beitreten rückt der Platz nach
+  const togglePlaceholder = async (teamId: string, placeholderId: string, isMember: boolean) => {
+    const { error } = isMember
+      ? await supabase
+          .from("team_members")
+          .delete()
+          .eq("team_id", teamId)
+          .eq("placeholder_id", placeholderId)
+      : await supabase.from("team_members").insert({ team_id: teamId, placeholder_id: placeholderId });
 
     if (error) {
       Alert.alert("Fehler", error.message);
@@ -87,7 +106,7 @@ export default function TeamsScreen() {
               Löschen
             </Text>
           </View>
-          <Muted>Mitglieder antippen, um sie hinzuzufügen oder zu entfernen.</Muted>
+          <Muted>Antippen, um jemanden hinzuzufügen oder zu entfernen.</Muted>
           <View style={styles.chipWrap}>
             {members.map((member) => {
               const isMember = team.member_ids.includes(member.id);
@@ -100,7 +119,21 @@ export default function TeamsScreen() {
                 />
               );
             })}
+            {placeholders.map((placeholder) => {
+              const isMember = team.placeholder_ids.includes(placeholder.id);
+              return (
+                <Chip
+                  key={placeholder.id}
+                  label={`${placeholder.name} (noch nicht dabei)`}
+                  selected={isMember}
+                  onPress={() => togglePlaceholder(team.id, placeholder.id, isMember)}
+                />
+              );
+            })}
           </View>
+          {team.member_ids.length === 0 && team.placeholder_ids.length === 0 && (
+            <Muted>Noch niemand im Team — die Aufgabe hätte dann niemanden.</Muted>
+          )}
         </Card>
       ))}
     </ScrollView>

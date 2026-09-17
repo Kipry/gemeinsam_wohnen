@@ -55,11 +55,7 @@ export default function TasksScreen() {
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { teams } = useTeams(activeHousehold?.id);
-  const {
-    placeholders,
-    loading: placeholdersLoading,
-    refresh: refreshPlaceholders,
-  } = usePlaceholders(activeHousehold?.id);
+  const { placeholders, loading: placeholdersLoading } = usePlaceholders(activeHousehold?.id);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,9 +144,7 @@ export default function TasksScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-      // Hat inzwischen jemand einen Platz übernommen? (Für den Vorschlag zum Neustart)
-      refreshPlaceholders();
-    }, [load, refreshPlaceholders])
+    }, [load])
   );
 
   // Auf dem Aufgaben-Bildschirm erledigt: hier die gewohnte Rückgängig-Leiste zeigen
@@ -253,9 +247,10 @@ export default function TasksScreen() {
         : members.find((member) => member.id === entry.user_id)?.full_name ?? FORMER_MEMBER;
     }
     if (entry.team_id) {
-      return `Team ${teams.find((team) => team.id === entry.team_id)?.name ?? "?"}`;
+      const name = teams.find((team) => team.id === entry.team_id)?.name;
+      return name ? `Team ${name}` : "Team";
     }
-    return placeholders.find((placeholder) => placeholder.id === entry.placeholder_id)?.name ?? "?";
+    return placeholders.find((placeholder) => placeholder.id === entry.placeholder_id)?.name ?? "noch offen";
   };
 
   const assignmentSummary = (routine: Routine) => {
