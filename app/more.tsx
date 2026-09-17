@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../src/lib/supabase";
 import { useAuth } from "../src/lib/AuthProvider";
@@ -10,6 +10,7 @@ import { usePlaceholders } from "../src/lib/usePlaceholders";
 import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
 import { signOutToLogin } from "../src/lib/signOut";
+import { legalLinks } from "../src/lib/links";
 import { Button, Card, Input, SectionTitle } from "../src/components/ui";
 
 const LINKS = [
@@ -37,6 +38,7 @@ const LINKS = [
 ] as const;
 
 export default function MoreScreen() {
+  const legal = legalLinks;
   const styles = useStyles();
   const colors = useColors();
   const { session } = useAuth();
@@ -214,6 +216,17 @@ export default function MoreScreen() {
       <TouchableOpacity style={styles.deleteAccount} onPress={() => router.push("/delete-account")}>
         <Text style={styles.deleteAccountText}>Konto löschen</Text>
       </TouchableOpacity>
+
+      {legal && (
+        <View style={styles.legalRow}>
+          <Text style={styles.legalLink} onPress={() => Linking.openURL(legal.privacy)}>
+            Datenschutz
+          </Text>
+          <Text style={styles.legalLink} onPress={() => Linking.openURL(legal.imprint)}>
+            Impressum
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -235,6 +248,8 @@ const useStyles = makeStyles((colors) => ({
     paddingVertical: 10,
   },
   active: { color: colors.tint, fontWeight: "600" },
+  legalRow: { flexDirection: "row", justifyContent: "center", gap: 20, marginTop: 4 },
+  legalLink: { fontSize: 13, color: colors.subtext, textDecorationLine: "underline" },
   deleteAccount: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 16 },
   deleteAccountText: { fontSize: 14, color: colors.subtext, textDecorationLine: "underline" },
   placeholderWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },

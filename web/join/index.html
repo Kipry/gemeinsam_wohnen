@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gemeinsam Wohnen – Einladung in eine WG</title>
+    <meta name="description" content="Einladung in eine WG bei Gemeinsam Wohnen: Putzplan, Einkaufsliste, Kosten, Kalender." />
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <main>
+      <p class="lead">Gemeinsam Wohnen</p>
+      <h1 id="title">Du bist in eine WG eingeladen</h1>
+      <p class="lead" id="lead">
+        Putzplan, Einkaufsliste, Kosten und Termine an einem Ort – für die ganze WG.
+      </p>
+
+      <div class="card" id="code-card" hidden>
+        <p class="muted" style="margin: 0 0 4px">Dein Einladungscode</p>
+        <p class="code" id="code">------</p>
+        <a class="button" id="open-app" href="#">In der App öffnen</a>
+        <button class="button secondary" id="copy">Code kopieren</button>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top: 0">So kommst du rein</h2>
+        <ol>
+          <li><strong>App installieren</strong> – unten auf den Knopf tippen.</li>
+          <li><strong>Konto anlegen</strong> – mit E-Mail oder „Mit Apple anmelden".</li>
+          <li>
+            <strong>WG beitreten</strong> – tippe oben auf „In der App öffnen" oder gib den Code in der
+            App ein.
+          </li>
+        </ol>
+        <a class="button" href="[[APP_STORE_URL]]">App für iPhone laden</a>
+        <p class="muted" style="margin-bottom: 0">
+          Android ist in Arbeit. Schreib der Person, die dich eingeladen hat – sie weiß, wann es
+          losgeht.
+        </p>
+      </div>
+
+      <footer>
+        <a href="../datenschutz.html">Datenschutz</a>
+        <a href="../impressum.html">Impressum</a>
+        <p style="margin-top: 12px">
+          Diese Seite lädt nichts von Dritten, setzt keine Cookies und misst nichts.
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      // Code steht in ?code=ABC123 oder am Ende des Pfades (/join/ABC123)
+      const fromQuery = new URLSearchParams(location.search).get("code");
+      const fromPath = location.pathname.split("/").filter(Boolean).pop();
+      const raw = fromQuery || (fromPath && /^[A-Za-z0-9]{6}$/.test(fromPath) ? fromPath : "");
+      const code = (raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+
+      if (code.length === 6) {
+        document.getElementById("code").textContent = code;
+        document.getElementById("open-app").href = "gemeinsamwohnen://join?code=" + code;
+        document.getElementById("code-card").hidden = false;
+      } else {
+        document.getElementById("title").textContent = "Gemeinsam Wohnen";
+        document.getElementById("lead").textContent =
+          "Die App für WGs: Putzplan mit Rotation, Einkaufsliste, Kostenaufteilung, Kalender und Pinnwand.";
+      }
+
+      document.getElementById("copy").addEventListener("click", async (event) => {
+        try {
+          await navigator.clipboard.writeText(code);
+          event.target.textContent = "Code kopiert";
+        } catch {
+          event.target.textContent = "Code: " + code;
+        }
+      });
+    </script>
+  </body>
+</html>

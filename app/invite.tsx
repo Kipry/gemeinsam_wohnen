@@ -2,12 +2,8 @@ import { Share, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { makeStyles, useColors } from "../src/lib/theme";
+import { inviteUrl } from "../src/lib/links";
 import { Button, Card, Loading, Muted, Screen } from "../src/components/ui";
-
-/** Tiefer Link in die App; das Schema steht in app.json */
-export function inviteLink(code: string): string {
-  return `gemeinsamwohnen://join?code=${code}`;
-}
 
 export default function InviteScreen() {
   const styles = useStyles();
@@ -16,7 +12,7 @@ export default function InviteScreen() {
 
   if (!activeHousehold) return <Loading />;
 
-  const link = inviteLink(activeHousehold.invite_code);
+  const link = inviteUrl(activeHousehold.invite_code);
 
   const share = async () => {
     await Share.share({

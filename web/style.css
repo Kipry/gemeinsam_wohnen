@@ -1,0 +1,138 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f7f7fb;
+  --card: #ffffff;
+  --text: #1c1c28;
+  --subtext: #6b6b7b;
+  --border: #e4e4ee;
+  --primary: #5b5fef;
+  --tint: #5055e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f14;
+    --card: #1a1a22;
+    --text: #ededf3;
+    --subtext: #a3a3b5;
+    --border: #2d2d39;
+    --tint: #a3a6ff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px 16px 48px;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 8px 0 4px;
+}
+
+h2 {
+  font-size: 19px;
+  margin: 32px 0 8px;
+}
+
+h3 {
+  font-size: 16px;
+  margin: 24px 0 4px;
+}
+
+p,
+li {
+  color: var(--text);
+}
+
+.lead,
+.muted {
+  color: var(--subtext);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.code {
+  font: 600 32px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 6px;
+  text-align: center;
+  margin: 4px 0 16px;
+}
+
+.button {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  margin: 8px 0 0;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button.secondary {
+  background: transparent;
+  color: var(--tint);
+  border-color: var(--border);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 15px;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 8px 8px 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+a {
+  color: var(--tint);
+}
+
+footer {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--subtext);
+}
+
+footer a {
+  margin-right: 14px;
+}
+
+.placeholder {
+  background: rgba(255, 181, 71, 0.22);
+  border-radius: 4px;
+  padding: 0 4px;
+}
