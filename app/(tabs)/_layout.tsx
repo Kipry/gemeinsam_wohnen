@@ -1,10 +1,12 @@
 import { Redirect, Tabs, router } from "expo-router";
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "../../src/lib/theme";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { useHousehold } from "../../src/lib/HouseholdProvider";
 import { Loading } from "../../src/components/ui";
+import { OfflineBadge, OfflineScreen } from "../../src/components/Offline";
+import { useOnline } from "../../src/lib/connectivity";
 
 // "Mehr" liegt als Symbol in der Kopfzeile statt als sechster Tab —
 // mehr als fünf Tabs werden auf dem iPhone zu eng.
@@ -24,7 +26,8 @@ function MoreButton() {
 export default function TabsLayout() {
   const colors = useColors();
   const { session, loading: authLoading } = useAuth();
-  const { activeHousehold, loading: householdLoading } = useHousehold();
+  const { activeHousehold, loading: householdLoading, refresh } = useHousehold();
+  const online = useOnline();
 
   // Erst entscheiden, wenn Sitzung und WGs geladen sind — sonst landet ein
   // direkt geöffneter Tab (Link, Push-Benachrichtigung) bei "WG einrichten".
@@ -36,6 +39,8 @@ export default function TabsLayout() {
     return <Redirect href="/(auth)/login" />;
   }
   if (!activeHousehold) {
+    // Ohne Netz heißt „keine WG geladen" nicht „keine WG"
+    if (!online) return <OfflineScreen onRetry={refresh} />;
     return <Redirect href="/(auth)/household" />;
   }
 
@@ -43,7 +48,12 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerTintColor: colors.text,
-        headerRight: () => <MoreButton />,
+        headerRight: () => (
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <OfflineBadge />
+            <MoreButton />
+          </View>
+        ),
         tabBarActiveTintColor: colors.tint,
         tabBarInactiveTintColor: colors.subtext,
       }}

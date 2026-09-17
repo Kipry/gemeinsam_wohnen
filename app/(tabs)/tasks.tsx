@@ -15,10 +15,13 @@ import { Button, Chip, Empty, Loading, pullToRefresh, Screen, UndoToast } from "
 import { rhythmLabel } from "../../src/lib/taskLabels";
 import { hapticSuccess, hapticTap } from "../../src/lib/haptics";
 import { PushPrompt } from "../../src/components/PushPrompt";
+import { RestartPrompt } from "../../src/components/RestartPrompt";
 import { onChoreCompleted } from "../../src/lib/choreEvents";
 import { useWaste } from "../../src/lib/useWaste";
 import { collectionsBetween } from "../../src/lib/waste";
 import { joinWithAnd } from "../../src/lib/text";
+import { describeError, onReconnect } from "../../src/lib/connectivity";
+import { useOfflineSnapshot } from "../../src/lib/offlineCache";
 import type { Task, TaskOccurrence, TaskRotationEntry } from "../../src/types/database";
 
 type Occurrence = TaskOccurrence & {
@@ -28,6 +31,8 @@ type Occurrence = TaskOccurrence & {
 type TaskView = "alle" | "meine" | "plan" | "routinen";
 
 type Routine = Task & { task_rotation: TaskRotationEntry[]; task_checklist_items: { id: string }[] };
+
+type TasksSnapshot = { occurrences: Occurrence[]; routines: Routine[]; checkCounts: [string, number][] };
 
 function formatDue(dueDate: string): string {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -50,7 +55,11 @@ export default function TasksScreen() {
   const { activeHousehold } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { teams } = useTeams(activeHousehold?.id);
-  const { placeholders } = usePlaceholders(activeHousehold?.id);
+  const {
+    placeholders,
+    loading: placeholdersLoading,
+    refresh: refreshPlaceholders,
+  } = usePlaceholders(activeHousehold?.id);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +69,17 @@ export default function TasksScreen() {
   /** Abgehakte Punkte je „Aufgabe|Tag" */
   const [checkCounts, setCheckCounts] = useState<Map<string, number>>(new Map());
   const { bins, changes } = useWaste(activeHousehold?.id);
+
+  // Ohne Netz den letzten Stand zeigen statt einer leeren Liste
+  const saveSnapshot = useOfflineSnapshot<TasksSnapshot>(
+    activeHousehold ? `tasks:${activeHousehold.id}` : null,
+    (snapshot) => {
+      setOccurrences(snapshot.occurrences);
+      setRoutines(snapshot.routines);
+      setCheckCounts(new Map(snapshot.checkCounts));
+      setLoading(false);
+    }
+  );
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
@@ -77,12 +97,18 @@ export default function TasksScreen() {
         .order("title"),
     ]);
 
-    if (occurrenceResult.error) console.error(occurrenceResult.error);
-    if (routineResult.error) console.error(routineResult.error);
+    if (occurrenceResult.error || routineResult.error) {
+      // Ohne Netz: beim angezeigten Stand bleiben
+      console.error(occurrenceResult.error ?? routineResult.error);
+      setLoading(false);
+      return;
+    }
+    const loadedOccurrences = (occurrenceResult.data as Occurrence[]) ?? [];
     const loadedRoutines = (routineResult.data as Routine[]) ?? [];
-    setOccurrences((occurrenceResult.data as Occurrence[]) ?? []);
+    setOccurrences(loadedOccurrences);
     setRoutines(loadedRoutines);
 
+    let counts = new Map<string, number>();
     const withChecklist = loadedRoutines.filter((routine) => routine.task_checklist_items.length > 0);
     if (withChecklist.length > 0) {
       const { data: checkRows } = await supabase
@@ -93,17 +119,18 @@ export default function TasksScreen() {
           withChecklist.map((routine) => routine.id)
         )
         .gte("due_date", addDays(todayISO(), -60));
-      const counts = new Map<string, number>();
+      counts = new Map<string, number>();
       for (const row of (checkRows as { task_id: string; due_date: string }[]) ?? []) {
         const key = `${row.task_id}|${row.due_date}`;
         counts.set(key, (counts.get(key) ?? 0) + 1);
       }
-      setCheckCounts(counts);
-    } else {
-      setCheckCounts(new Map());
     }
+    setCheckCounts(counts);
+    saveSnapshot({ occurrences: loadedOccurrences, routines: loadedRoutines, checkCounts: [...counts] });
     setLoading(false);
-  }, [activeHousehold]);
+  }, [activeHousehold, saveSnapshot]);
+
+  useEffect(() => onReconnect(() => void load()), [load]);
   const { refreshing, onRefresh } = useRefresh(load);
 
   // Plan bis zum Horizont auffüllen — ohne das würde eine liegengebliebene
@@ -121,7 +148,9 @@ export default function TasksScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+      // Hat inzwischen jemand einen Platz übernommen? (Für den Vorschlag zum Neustart)
+      refreshPlaceholders();
+    }, [load, refreshPlaceholders])
   );
 
   // Auf dem Aufgaben-Bildschirm erledigt: hier die gewohnte Rückgängig-Leiste zeigen
@@ -244,12 +273,12 @@ export default function TasksScreen() {
 
   const markDone = async (occurrence: Occurrence) => {
     setBusyId(occurrence.id);
-    const { error } = await supabase.rpc("complete_occurrence", {
+    const { error, status } = await supabase.rpc("complete_occurrence", {
       p_occurrence_id: occurrence.id,
     });
     setBusyId(null);
     if (error) {
-      Alert.alert("Fehler", error.message);
+      Alert.alert("Nicht erledigt", describeError(error, status));
       return;
     }
     hapticSuccess();
@@ -259,10 +288,10 @@ export default function TasksScreen() {
 
   const undoDone = async () => {
     if (!undo) return;
-    const { error } = await supabase.rpc("uncomplete_occurrence", { p_occurrence_id: undo.id });
+    const { error, status } = await supabase.rpc("uncomplete_occurrence", { p_occurrence_id: undo.id });
     setUndo(null);
     if (error) {
-      Alert.alert("Fehler", error.message);
+      Alert.alert("Nicht rückgängig gemacht", describeError(error, status));
       return;
     }
     hapticTap();
@@ -295,6 +324,11 @@ export default function TasksScreen() {
         </TouchableOpacity>
       )}
 
+      <RestartPrompt
+        openPlaceholders={placeholders.length}
+        placeholdersLoading={placeholdersLoading}
+        onRestarted={load}
+      />
       <PushPrompt />
 
       {view === "routinen" ? (

@@ -11,9 +11,13 @@ import { FORMER_MEMBER, useHouseholdMembers } from "../../src/lib/useHouseholdMe
 import { makeStyles, useColors } from "../../src/lib/theme";
 import { formatCents, suggestSettlements } from "../../src/lib/money";
 import { Button, Card, Empty, Loading, pullToRefresh, Screen, SectionTitle } from "../../src/components/ui";
+import { onReconnect } from "../../src/lib/connectivity";
+import { useOfflineSnapshot } from "../../src/lib/offlineCache";
 import type { Expense, ExpenseBalance } from "../../src/types/database";
 
 type ExpenseWithShares = Expense & { expense_shares: { user_id: string; share_cents: number }[] };
+
+type ExpensesSnapshot = { expenses: ExpenseWithShares[]; balances: ExpenseBalance[] };
 
 export default function ExpensesScreen() {
   const styles = useStyles();
@@ -26,6 +30,16 @@ export default function ExpensesScreen() {
   const [loading, setLoading] = useState(true);
   const [settling, setSettling] = useState<string | null>(null);
   const [booked, setBooked] = useState(0);
+
+  // Ohne Netz den letzten Stand zeigen statt „alles ausgeglichen"
+  const saveSnapshot = useOfflineSnapshot<ExpensesSnapshot>(
+    activeHousehold ? `expenses:${activeHousehold.id}` : null,
+    (snapshot) => {
+      setExpenses(snapshot.expenses);
+      setBalances(snapshot.balances);
+      setLoading(false);
+    }
+  );
 
   const load = useCallback(async () => {
     if (!activeHousehold) return;
@@ -41,13 +55,23 @@ export default function ExpensesScreen() {
       supabase.from("expense_balance_view").select("*").eq("household_id", activeHousehold.id),
     ]);
 
-    if (expenseResult.error) console.error(expenseResult.error);
-    if (balanceResult.error) console.error(balanceResult.error);
+    if (expenseResult.error || balanceResult.error) {
+      console.error(expenseResult.error ?? balanceResult.error);
+      setLoading(false);
+      return;
+    }
 
-    setExpenses((expenseResult.data as ExpenseWithShares[]) ?? []);
-    setBalances((balanceResult.data as ExpenseBalance[]) ?? []);
+    const snapshot = {
+      expenses: (expenseResult.data as ExpenseWithShares[]) ?? [],
+      balances: (balanceResult.data as ExpenseBalance[]) ?? [],
+    };
+    setExpenses(snapshot.expenses);
+    setBalances(snapshot.balances);
+    saveSnapshot(snapshot);
     setLoading(false);
-  }, [activeHousehold]);
+  }, [activeHousehold, saveSnapshot]);
+
+  useEffect(() => onReconnect(() => void load()), [load]);
   const { refreshing, onRefresh } = useRefresh(load);
 
   // Fällige feste Kosten nachbuchen, bevor der Saldo angezeigt wird

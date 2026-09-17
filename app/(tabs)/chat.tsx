@@ -23,19 +23,25 @@ import { consumePollSent } from "../../src/lib/polls";
 import { joinWithAnd } from "../../src/lib/text";
 import { Chip } from "../../src/components/ui";
 import { PollCard } from "../../src/components/PollCard";
+import { describeError, onReconnect } from "../../src/lib/connectivity";
+import { useOfflineSnapshot } from "../../src/lib/offlineCache";
 import type { ChatKind, ChatMessage, ChatReceipt, PollVote } from "../../src/types/database";
+
+type ChatSnapshot = { messages: ChatMessage[]; receipts: ChatReceipt[]; votes: PollVote[] };
 
 const EVENT_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   task_occurrences: "sparkles",
   expenses: "cash",
   absences: "airplane",
   calendar_events: "calendar",
+  households: "refresh",
 };
 
 const EVENT_ROUTE: Record<string, (id: string) => string> = {
   expenses: (id) => `/expense/${id}`,
   calendar_events: (id) => `/event/${id}`,
   absences: () => "/(tabs)/calendar",
+  households: () => "/stats",
 };
 
 const KIND_TITLE: Record<ChatKind, string> = {
@@ -64,6 +70,16 @@ export default function ChatScreen() {
   // Text, der beim Tippen auf „Umfrage" als Frage mitging
   const pollDraft = useRef<string | null>(null);
   const myId = session?.user.id;
+
+  // Ohne Netz den letzten Stand zeigen
+  const saveSnapshot = useOfflineSnapshot<ChatSnapshot>(
+    activeHousehold ? `chat:${activeHousehold.id}` : null,
+    (snapshot) => {
+      setMessages(snapshot.messages);
+      setReceipts(snapshot.receipts);
+      setVotes(snapshot.votes);
+    }
+  );
 
   const nameFor = (userId: string) =>
     userId === myId ? "Du" : members.find((m) => m.id === userId)?.full_name ?? FORMER_MEMBER;
@@ -95,7 +111,11 @@ export default function ChatScreen() {
         .gte("pinned_until", todayISO()),
     ]);
 
-    if (latestResult.error) console.error(latestResult.error);
+    if (latestResult.error || pinnedResult.error) {
+      // Ohne Netz: beim angezeigten Stand bleiben
+      console.error(latestResult.error ?? pinnedResult.error);
+      return;
+    }
     const byId = new Map<string, ChatMessage>();
     for (const message of [...(latestResult.data ?? []), ...(pinnedResult.data ?? [])] as ChatMessage[]) {
       byId.set(message.id, message);
@@ -113,10 +133,18 @@ export default function ChatScreen() {
         : Promise.resolve({ data: [] }),
     ]);
 
-    setMessages(loaded);
-    setReceipts((receiptResult.data as ChatReceipt[]) ?? []);
-    setVotes((voteResult.data as PollVote[]) ?? []);
-  }, [activeHousehold]);
+    const snapshot = {
+      messages: loaded,
+      receipts: (receiptResult.data as ChatReceipt[]) ?? [],
+      votes: (voteResult.data as PollVote[]) ?? [],
+    };
+    setMessages(snapshot.messages);
+    setReceipts(snapshot.receipts);
+    setVotes(snapshot.votes);
+    saveSnapshot(snapshot);
+  }, [activeHousehold, saveSnapshot]);
+
+  useEffect(() => onReconnect(() => void load()), [load]);
 
   useFocusEffect(
     useCallback(() => {
@@ -238,7 +266,7 @@ export default function ChatScreen() {
     const content = text.trim();
     setText("");
 
-    const { error } = await supabase.from("chat_messages").insert({
+    const { error, status } = await supabase.from("chat_messages").insert({
       household_id: activeHousehold.id,
       user_id: session.user.id,
       content,
@@ -249,7 +277,7 @@ export default function ChatScreen() {
 
     if (error) {
       setText(content);
-      Alert.alert("Nachricht nicht gesendet", error.message);
+      Alert.alert("Nachricht nicht gesendet", describeError(error, status));
       return;
     }
     hapticTap();
@@ -315,9 +343,9 @@ export default function ChatScreen() {
         updated_at: new Date().toISOString(),
       },
     ]);
-    const { error } = await supabase.rpc("vote_poll", { p_message_id: message.id, p_choices: choices });
+    const { error, status } = await supabase.rpc("vote_poll", { p_message_id: message.id, p_choices: choices });
     if (error) {
-      Alert.alert("Stimme nicht gespeichert", error.message);
+      Alert.alert("Stimme nicht gespeichert", describeError(error, status));
       load();
     }
   };

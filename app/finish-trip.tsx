@@ -9,6 +9,7 @@ import { useHousehold } from "../src/lib/HouseholdProvider";
 import { useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { makeStyles, useColors } from "../src/lib/theme";
 import { formatShort, todayISO } from "../src/lib/dates";
+import { joinWithAnd } from "../src/lib/text";
 import { ExpenseForm, type ExpenseFormValues } from "../src/components/ExpenseForm";
 import { ReceiptPicker } from "../src/components/ReceiptPicker";
 import { attachReceipt, type PickedReceipt } from "../src/lib/receipts";
@@ -65,6 +66,14 @@ export default function FinishTrip() {
     return <Empty>Kein laufender Einkauf.</Empty>;
   }
 
+  // Eigene private Sachen gehören nicht in die geteilte Ausgabe
+  const privateItems = items.filter((item) => item.private);
+  const privateNames = privateItems.map((item) => item.name);
+  const privateSummary =
+    privateNames.length > 3
+      ? `${privateNames.slice(0, 3).join(", ")} und ${privateNames.length - 3} weitere`
+      : joinWithAnd(privateNames);
+
   const save = async (values: ExpenseFormValues) => {
     setSaving(true);
     const { data, error: rpcError } = await supabase.rpc("finish_shopping_trip", {
@@ -120,6 +129,16 @@ export default function FinishTrip() {
         </Text>
       </View>
 
+      {privateItems.length > 0 && (
+        <View style={styles.privateNote}>
+          <Ionicons name="lock-closed" size={14} color={colors.warning} />
+          <Text style={styles.privateNoteText}>
+            {privateSummary} {privateItems.length === 1 ? "ist" : "sind"} nur für dich – nicht in den Betrag
+            rechnen.
+          </Text>
+        </View>
+      )}
+
       {error && <ErrorText>{error}</ErrorText>}
 
       <ExpenseForm
@@ -157,4 +176,16 @@ const useStyles = makeStyles((colors) => ({
     borderBottomColor: colors.border,
   },
   headerText: { flex: 1, fontSize: 13, color: colors.subtext },
+  privateNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.absenceTint,
+  },
+  privateNoteText: { flex: 1, fontSize: 13, color: colors.warning },
 }));

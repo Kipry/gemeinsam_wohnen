@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 import { useRefresh } from "../src/lib/useRefresh";
 import { useAuth } from "../src/lib/AuthProvider";
@@ -8,13 +8,20 @@ import { useHousehold } from "../src/lib/HouseholdProvider";
 import { FORMER_MEMBER, useHouseholdMembers } from "../src/lib/useHouseholdMembers";
 import { makeStyles, useColors } from "../src/lib/theme";
 import { Card, Empty, Loading, Muted, pullToRefresh, Screen } from "../src/components/ui";
+import { confirmChoreRestart, statsCountingSince } from "../src/lib/choreRestart";
 import type { ChoreStats } from "../src/types/database";
+
+/** „14.09.2026" */
+function formatDay(timestamp: string) {
+  const date = new Date(timestamp);
+  return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}.${date.getFullYear()}`;
+}
 
 export default function StatsScreen() {
   const styles = useStyles();
   const colors = useColors();
   const { session } = useAuth();
-  const { activeHousehold } = useHousehold();
+  const { activeHousehold, refresh } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const [stats, setStats] = useState<ChoreStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,9 +62,28 @@ export default function StatsScreen() {
         contentContainerStyle={{ padding: 16, gap: 12 }}
         ListHeaderComponent={
           <Muted>
-            Punkte zählen erledigte Putzplan-Aufgaben. „Pünktlich" heißt: bis zum Fälligkeitstag
-            abgehakt.
+            Punkte zählen erledigte Putzplan-Aufgaben
+            {activeHousehold ? ` seit ${formatDay(statsCountingSince(activeHousehold))}` : ""}. „Pünktlich"
+            heißt: bis zum Fälligkeitstag abgehakt.
           </Muted>
+        }
+        ListFooterComponent={
+          activeHousehold ? (
+            <View style={styles.restart}>
+              <TouchableOpacity
+                onPress={() =>
+                  confirmChoreRestart(activeHousehold.id, async () => {
+                    await refresh();
+                    load();
+                  })
+                }
+                accessibilityRole="button"
+              >
+                <Text style={styles.restartLink}>Putzplan neu starten</Text>
+              </TouchableOpacity>
+              <Muted>Alle fangen bei null an – zum Beispiel, wenn neue Mitbewohner eingezogen sind.</Muted>
+            </View>
+          ) : null
         }
         ListEmptyComponent={<Empty>Noch keine Daten.</Empty>}
         renderItem={({ item }) => {
@@ -120,4 +146,6 @@ const useStyles = makeStyles((colors) => ({
   statsRow: { flexDirection: "row", justifyContent: "space-between" },
   diff: { fontSize: 12, fontWeight: "600" },
   stat: { fontSize: 12, color: colors.subtext },
+  restart: { alignItems: "center", gap: 4, marginTop: 12 },
+  restartLink: { fontSize: 15, fontWeight: "600", color: colors.tint },
 }));

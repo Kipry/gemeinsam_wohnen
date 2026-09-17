@@ -15,6 +15,8 @@ export type Household = {
   invite_code: string;
   created_by: string;
   created_at: string;
+  /** Putzplan-Statistik zählt ab hier (letzter Neustart); null = seit Gründung */
+  stats_since: string | null;
 };
 
 export type HouseholdMember = {
@@ -100,6 +102,8 @@ export type ShoppingItem = {
   bought_by: string | null;
   bought_at: string | null;
   trip_id: string | null;
+  /** Nur für `added_by` sichtbar — setzt die Datenbank durch */
+  private: boolean;
   created_at: string;
   deleted_at: string | null;
 };

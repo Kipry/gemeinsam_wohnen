@@ -7,6 +7,7 @@ import { AuthProvider } from "../src/lib/AuthProvider";
 import { HouseholdProvider } from "../src/lib/HouseholdProvider";
 import { useColors } from "../src/lib/theme";
 import { PushListener } from "../src/components/PushListener";
+import { OfflineSync } from "../src/components/OfflineSync";
 
 export default function RootLayout() {
   const colors = useColors();
@@ -40,6 +41,7 @@ export default function RootLayout() {
         <HouseholdProvider>
           <StatusBar style="auto" />
           <PushListener />
+          <OfflineSync />
           <Stack screenOptions={{ headerTintColor: colors.text }}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

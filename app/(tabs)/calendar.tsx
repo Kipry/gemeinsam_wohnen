@@ -19,6 +19,8 @@ import {
   monthGrid,
   todayISO,
 } from "../../src/lib/dates";
+import { onReconnect } from "../../src/lib/connectivity";
+import { useOfflineSnapshot } from "../../src/lib/offlineCache";
 import { EVENT_KINDS } from "../../src/lib/eventKinds";
 import { layoutWeek, type SpanItem } from "../../src/lib/calendarLayout";
 import { useWaste } from "../../src/lib/useWaste";
@@ -33,6 +35,13 @@ import type {
 } from "../../src/types/database";
 
 type Chore = TaskOccurrence & { tasks: Pick<Task, "title"> };
+
+type CalendarSnapshot = {
+  events: CalendarEvent[];
+  absences: Absence[];
+  chores: Chore[];
+  attendees: CalendarEventAttendee[];
+};
 
 const MAX_LANES = 3;
 const LANE_HEIGHT = 16;
@@ -74,6 +83,18 @@ export default function CalendarScreen() {
     [bins, changes, rangeStart, rangeEnd]
   );
 
+  // Je angezeigtem Monat der letzte Stand fürs Funkloch
+  const saveSnapshot = useOfflineSnapshot<CalendarSnapshot>(
+    activeHousehold ? `calendar:${activeHousehold.id}:${rangeStart}` : null,
+    (snapshot) => {
+      setEvents(snapshot.events);
+      setAbsences(snapshot.absences);
+      setChores(snapshot.chores);
+      setAttendees(snapshot.attendees);
+      setLoading(false);
+    }
+  );
+
   const load = useCallback(async () => {
     if (!activeHousehold) return;
 
@@ -101,11 +122,21 @@ export default function CalendarScreen() {
         .lte("due_date", rangeEnd),
     ]);
 
-    const loadedEvents = (eventResult.data as CalendarEvent[]) ?? [];
-    setEvents(loadedEvents);
-    setAbsences((absenceResult.data as Absence[]) ?? []);
-    setChores((choreResult.data as Chore[]) ?? []);
+    if (eventResult.error || absenceResult.error || choreResult.error) {
+      // Ohne Netz: beim angezeigten Stand bleiben
+      console.error(eventResult.error ?? absenceResult.error ?? choreResult.error);
+      setLoading(false);
+      return;
+    }
 
+    const loadedEvents = (eventResult.data as CalendarEvent[]) ?? [];
+    const loadedAbsences = (absenceResult.data as Absence[]) ?? [];
+    const loadedChores = (choreResult.data as Chore[]) ?? [];
+    setEvents(loadedEvents);
+    setAbsences(loadedAbsences);
+    setChores(loadedChores);
+
+    let loadedAttendees: CalendarEventAttendee[] = [];
     if (loadedEvents.length > 0) {
       const { data } = await supabase
         .from("calendar_event_attendees")
@@ -114,13 +145,15 @@ export default function CalendarScreen() {
           "event_id",
           loadedEvents.map((event) => event.id)
         );
-      setAttendees((data as CalendarEventAttendee[]) ?? []);
-    } else {
-      setAttendees([]);
+      loadedAttendees = (data as CalendarEventAttendee[]) ?? [];
     }
+    setAttendees(loadedAttendees);
+    saveSnapshot({ events: loadedEvents, absences: loadedAbsences, chores: loadedChores, attendees: loadedAttendees });
 
     setLoading(false);
-  }, [activeHousehold, rangeStart, rangeEnd]);
+  }, [activeHousehold, rangeStart, rangeEnd, saveSnapshot]);
+
+  useEffect(() => onReconnect(() => void load()), [load]);
   const { refreshing, onRefresh } = useRefresh(load);
 
   useFocusEffect(

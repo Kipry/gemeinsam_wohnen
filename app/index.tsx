@@ -2,10 +2,13 @@ import { Redirect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
+import { useOnline } from "../src/lib/connectivity";
+import { OfflineScreen } from "../src/components/Offline";
 
 export default function Index() {
   const { session, loading: authLoading } = useAuth();
-  const { activeHousehold, loading: householdLoading } = useHousehold();
+  const { activeHousehold, loading: householdLoading, refresh } = useHousehold();
+  const online = useOnline();
 
   if (authLoading || (session && householdLoading)) {
     return (
@@ -20,6 +23,7 @@ export default function Index() {
   }
 
   if (!activeHousehold) {
+    if (!online) return <OfflineScreen onRetry={refresh} />;
     return <Redirect href="/(auth)/household" />;
   }
 

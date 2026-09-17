@@ -14,11 +14,14 @@ import { Button } from "./ui";
  */
 export function PastedListSheet({
   items,
+  privateMode,
   alreadyOnList,
   onCancel,
   onAdd,
 }: {
   items: PastedItem[] | null;
+  /** Schloss war an: die Artikel sieht nur man selbst */
+  privateMode: boolean;
   /** Normalisierte Namen, die offen auf der Liste stehen */
   alreadyOnList: Set<string>;
   onCancel: () => void;
@@ -71,7 +74,14 @@ export function PastedListSheet({
         </View>
 
         <View style={styles.hintRow}>
-          <Text style={styles.hint}>Was ihr schon habt, einfach abwählen.</Text>
+          {privateMode ? (
+            <View style={styles.privateRow}>
+              <Ionicons name="lock-closed" size={13} color={colors.tint} />
+              <Text style={styles.privateHint}>Nur für dich – abwählen, was du schon hast.</Text>
+            </View>
+          ) : (
+            <Text style={styles.hint}>Was ihr schon habt, einfach abwählen.</Text>
+          )}
           <TouchableOpacity onPress={() => setAll(count === 0)}>
             <Text style={styles.link}>{count === 0 ? "Alle wählen" : "Keine"}</Text>
           </TouchableOpacity>
@@ -139,6 +149,8 @@ const useStyles = makeStyles((colors) => ({
     paddingBottom: 6,
   },
   hint: { fontSize: 13, color: colors.subtext },
+  privateRow: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 1 },
+  privateHint: { fontSize: 13, color: colors.tint, flexShrink: 1 },
   link: { fontSize: 14, fontWeight: "600", color: colors.tint },
   list: { paddingHorizontal: 16, paddingBottom: 16, gap: 6 },
   row: {
