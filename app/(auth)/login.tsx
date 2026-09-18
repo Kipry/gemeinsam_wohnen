@@ -15,16 +15,20 @@ import { supabase } from "../../src/lib/supabase";
 import { useAuth } from "../../src/lib/AuthProvider";
 import { makeStyles, useColors } from "../../src/lib/theme";
 
+/**
+ * Anmeldung nur über Apple (Google folgt). E-Mail und Passwort gibt es nicht mehr:
+ * Supabase verschickt ohne eigenen Mailserver keine Bestätigungs- und Reset-Mails an
+ * fremde Adressen. Nur in der Entwicklung bleibt die Passwort-Anmeldung für Testkonten.
+ */
+const TEST_LOGIN = __DEV__;
+
 export default function Login() {
   const styles = useStyles();
   const colors = useColors();
   const { session } = useAuth();
-  const [mode, setMode] = useState<"sign_in" | "sign_up">("sign_in");
-  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
 
@@ -37,27 +41,11 @@ export default function Login() {
     return <Redirect href="/" />;
   }
 
-  const submit = async () => {
+  const signInWithTestAccount = async () => {
     setError(null);
-    setInfo(null);
     setLoading(true);
-
-    if (mode === "sign_in") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-    } else {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName.trim() } },
-      });
-      if (error) {
-        setError(error.message);
-      } else if (!data.session) {
-        setInfo("Fast geschafft: Bestätige den Link in deiner E-Mail und melde dich dann an.");
-      }
-    }
-
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message);
     setLoading(false);
   };
 
@@ -107,65 +95,53 @@ export default function Login() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Text style={styles.title}>Gemeinsam Wohnen</Text>
-      <Text style={styles.subtitle}>
-        {mode === "sign_in" ? "Melde dich an" : "Erstelle deinen Account"}
-      </Text>
+      <Text style={styles.subtitle}>Der WG-Alltag an einem Ort</Text>
 
-      {appleAvailable && (
-        <>
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={10}
-            style={styles.appleButton}
-            onPress={signInWithApple}
-          />
-          <Text style={styles.or}>oder mit E-Mail</Text>
-        </>
-      )}
-
-      {mode === "sign_up" && (
-        <TextInput
-          style={styles.input}
-          placeholder="Vorname oder Spitzname"
-          value={fullName}
-          onChangeText={setFullName}
-          autoCapitalize="words"
-          maxLength={40}
+      {appleAvailable ? (
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={10}
+          style={styles.appleButton}
+          onPress={signInWithApple}
         />
+      ) : (
+        !TEST_LOGIN && (
+          <Text style={styles.hint}>Die Anmeldung ist bisher nur auf dem iPhone möglich.</Text>
+        )
       )}
-      <TextInput
-        style={styles.input}
-        placeholder="E-Mail"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Passwort"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+
+      {TEST_LOGIN && (
+        <View style={styles.testBox}>
+          <Text style={styles.testLabel}>Nur in der Entwicklung: Testkonto</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="E-Mail"
+            placeholderTextColor={colors.subtext}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Passwort"
+            placeholderTextColor={colors.subtext}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          <TouchableOpacity style={styles.button} onPress={signInWithTestAccount} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={colors.primaryText} />
+            ) : (
+              <Text style={styles.buttonText}>Anmelden</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {error && <Text style={styles.error}>{error}</Text>}
-      {info && <Text style={styles.info}>{info}</Text>}
-
-      <TouchableOpacity style={styles.button} onPress={submit} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color={colors.primaryText} />
-        ) : (
-          <Text style={styles.buttonText}>{mode === "sign_in" ? "Anmelden" : "Registrieren"}</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setMode(mode === "sign_in" ? "sign_up" : "sign_in")}>
-        <Text style={styles.switchText}>
-          {mode === "sign_in" ? "Noch keinen Account? Registrieren" : "Schon registriert? Anmelden"}
-        </Text>
-      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 }
@@ -181,7 +157,15 @@ const useStyles = makeStyles((colors) => ({
   title: { fontSize: 28, fontWeight: "700", color: colors.text, textAlign: "center" },
   subtitle: { fontSize: 15, color: colors.subtext, textAlign: "center", marginBottom: 12 },
   appleButton: { height: 48 },
-  or: { textAlign: "center", color: colors.subtext, fontSize: 13 },
+  hint: { textAlign: "center", color: colors.subtext, fontSize: 14 },
+  testBox: {
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  testLabel: { textAlign: "center", color: colors.subtext, fontSize: 12 },
   input: {
     backgroundColor: colors.card,
     borderColor: colors.border,
@@ -190,16 +174,14 @@ const useStyles = makeStyles((colors) => ({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
+    color: colors.text,
   },
   button: {
     backgroundColor: colors.primary,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 8,
   },
   buttonText: { color: colors.primaryText, fontSize: 16, fontWeight: "600" },
-  switchText: { color: colors.tint, textAlign: "center", marginTop: 16 },
   error: { color: colors.dangerText, textAlign: "center" },
-  info: { color: colors.successText, textAlign: "center" },
 }));
