@@ -70,7 +70,7 @@ export default function RootLayout() {
             <Stack.Screen name="join" options={{ headerShown: false }} />
             <Stack.Screen name="more" options={{ title: "Mehr" }} />
             <Stack.Screen name="edit-name" options={{ title: "Dein Name", presentation: "modal" }} />
-            <Stack.Screen name="review" options={{ title: "Monatsrückblick" }} />
+            <Stack.Screen name="review" options={{ title: "Rückblick" }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen name="claim" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen
@@ -87,7 +87,6 @@ export default function RootLayout() {
               options={{ title: "Neue Umfrage", presentation: "modal" }}
             />
             <Stack.Screen name="teams" options={{ title: "Teams" }} />
-            <Stack.Screen name="stats" options={{ title: "Statistik" }} />
             <Stack.Screen name="delete-account" options={{ title: "Konto löschen" }} />
             <Stack.Screen name="notifications" options={{ title: "Mitteilungen" }} />
             <Stack.Screen name="chore/[taskId]" options={{ title: "Aufgabe" }} />

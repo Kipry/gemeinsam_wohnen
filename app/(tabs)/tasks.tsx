@@ -28,7 +28,7 @@ type Occurrence = TaskOccurrence & {
   tasks: Pick<Task, "title" | "points" | "assignment_mode"> & { task_checklist_items: { id: string }[] };
 };
 
-type TaskView = "alle" | "meine" | "plan" | "routinen";
+type TaskView = "alle" | "meine" | "routinen";
 
 type Routine = Task & { task_rotation: TaskRotationEntry[]; task_checklist_items: { id: string }[] };
 
@@ -40,12 +40,16 @@ function formatDue(dueDate: string): string {
   today.setHours(12, 0, 0, 0);
   const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
 
-  if (days === 0) return "heute fällig";
-  if (days === 1) return "morgen fällig";
+  if (days === 0) return "heute";
+  if (days === 1) return "morgen";
   if (days === -1) return "1 Tag überfällig";
   if (days < 0) return `${Math.abs(days)} Tage überfällig`;
   if (days <= 6) return `in ${days} Tagen`;
   return formatShort(dueDate);
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export default function TasksScreen() {
@@ -184,29 +188,26 @@ export default function TasksScreen() {
     [session, myTeamIds]
   );
 
+  // Nach Wochen gruppiert: was jetzt ansteht oben, darunter der Plan bis zum Horizont.
+  // Ersetzt die frühere Trennung in „Alle" (7 Tage) und „Plan" (alles nach Wochen).
   const sections = useMemo(() => {
-    if (view === "plan") {
-      const byWeek = new Map<string, Occurrence[]>();
-      for (const occurrence of occurrences) {
-        const label = weekLabel(occurrence.due_date);
-        const bucket = byWeek.get(label);
-        if (bucket) bucket.push(occurrence);
-        else byWeek.set(label, [occurrence]);
-      }
-      return [...byWeek.entries()].map(([title, data]) => ({ title, data }));
+    // Alles Überfällige zusammen ganz oben, auch wenn es aus dieser Woche stammt
+    const today = todayISO();
+    const visible = view === "meine" ? occurrences.filter(isMine) : occurrences;
+    const byWeek = new Map<string, Occurrence[]>();
+    for (const occurrence of visible) {
+      const label = occurrence.due_date < today ? "Überfällig" : weekLabel(occurrence.due_date);
+      const bucket = byWeek.get(label);
+      if (bucket) bucket.push(occurrence);
+      else byWeek.set(label, [occurrence]);
     }
-
-    // Alltagsansicht: was jetzt ansteht, nicht der ganze Monat
-    const horizon = addDays(todayISO(), 7);
-    const soon = occurrences.filter((occurrence) => occurrence.due_date <= horizon);
-    const visible = view === "meine" ? soon.filter(isMine) : soon;
-    return visible.length > 0 ? [{ title: "", data: visible }] : [];
+    return [...byWeek.entries()].map(([title, data]) => ({ title, data }));
   }, [occurrences, view, isMine]);
 
   const assigneeLabel = (occurrence: Occurrence) => {
     if (occurrence.assigned_to) {
       const isMe = occurrence.assigned_to === session?.user.id;
-      return isMe ? "Du bist dran" : members.find((m) => m.id === occurrence.assigned_to)?.full_name ?? FORMER_MEMBER;
+      return isMe ? "Du" : members.find((m) => m.id === occurrence.assigned_to)?.full_name ?? FORMER_MEMBER;
     }
     if (occurrence.assigned_team_id) {
       const team = teams.find((t) => t.id === occurrence.assigned_team_id);
@@ -253,6 +254,7 @@ export default function TasksScreen() {
     return placeholders.find((placeholder) => placeholder.id === entry.placeholder_id)?.name ?? "noch offen";
   };
 
+  // Steht hinter dem Rhythmus in derselben Zeile — „Wer mag" und „Du" wie in der Aufgabenliste
   const assignmentSummary = (routine: Routine) => {
     if (routine.assignment_mode === "anyone") return "Wer mag";
     if (routine.assignment_mode === "fixed") {
@@ -260,10 +262,10 @@ export default function TasksScreen() {
         routine.fixed_assignee === session?.user.id
           ? "Du"
           : members.find((member) => member.id === routine.fixed_assignee)?.full_name ?? FORMER_MEMBER;
-      return `Immer: ${fixed}`;
+      return `immer ${fixed}`;
     }
     const order = [...routine.task_rotation].sort((a, b) => a.position - b.position);
-    return order.length > 0 ? `Reihum: ${order.map(rotationName).join(" → ")}` : "Reihum (niemand eingetragen)";
+    return order.length > 0 ? order.map(rotationName).join(" → ") : "niemand eingeteilt";
   };
 
   const markDone = async (occurrence: Occurrence) => {
@@ -298,16 +300,15 @@ export default function TasksScreen() {
   const emptyText =
     view === "meine"
       ? "Nichts für dich offen. 🎉"
-      : view === "plan"
+      : routines.length === 0
         ? "Noch keine Aufgaben geplant."
-        : "Diese Woche ist nichts offen.";
+        : "Alles erledigt. 🎉";
 
   return (
     <Screen>
       <View style={styles.filterRow}>
         <Chip label="Alle" selected={view === "alle"} onPress={() => setView("alle")} />
         <Chip label="Für mich" selected={view === "meine"} onPress={() => setView("meine")} />
-        <Chip label="Plan" selected={view === "plan"} onPress={() => setView("plan")} />
         <Chip label="Routinen" selected={view === "routinen"} onPress={() => setView("routinen")} />
       </View>
 
@@ -332,16 +333,6 @@ export default function TasksScreen() {
           data={sortedRoutines}
           keyExtractor={(routine) => routine.id}
           contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 90, gap: 10 }}
-          ListHeaderComponent={
-            routines.length > 0 ? (
-              <Text style={styles.routineCount}>
-                {routines.length} {routines.length === 1 ? "Routine" : "Routinen"}
-                {routines.some((routine) => !routine.active)
-                  ? ` · ${routines.filter((routine) => !routine.active).length} pausiert`
-                  : ""}
-              </Text>
-            ) : null
-          }
           ListEmptyComponent={<Empty>Noch keine Routinen. Leg unten eine an.</Empty>}
           renderItem={({ item: routine }) => {
             const next = nextByTask.get(routine.id);
@@ -351,7 +342,17 @@ export default function TasksScreen() {
                 onPress={() => router.push(`/task/${routine.id}`)}
               >
                 <View style={styles.routineHeader}>
-                  <Text style={styles.title}>{routine.title}</Text>
+                  <View style={styles.titleRow}>
+                    <Text style={styles.title}>{routine.title}</Text>
+                    {routine.task_checklist_items.length > 0 && (
+                      <Ionicons
+                        name="checkbox-outline"
+                        size={14}
+                        color={colors.subtext}
+                        accessibilityLabel="mit Checkliste"
+                      />
+                    )}
+                  </View>
                   {routine.active ? (
                     <Text style={styles.meta}>{routine.points} Pkt</Text>
                   ) : (
@@ -360,20 +361,12 @@ export default function TasksScreen() {
                     </View>
                   )}
                 </View>
-                <Text style={styles.meta}>{rhythmLabel(routine.interval_days, routine.weekday)}</Text>
                 <Text style={styles.meta} numberOfLines={2}>
-                  {assignmentSummary(routine)}
+                  {capitalize(rhythmLabel(routine.interval_days, routine.weekday))} · {assignmentSummary(routine)}
                 </Text>
-                {routine.task_checklist_items.length > 0 && (
-                  <Text style={styles.meta}>
-                    <Ionicons name="checkbox-outline" size={12} color={colors.subtext} /> Checkliste mit{" "}
-                    {routine.task_checklist_items.length}{" "}
-                    {routine.task_checklist_items.length === 1 ? "Punkt" : "Punkten"}
-                  </Text>
-                )}
                 {routine.active && next && (
                   <Text style={styles.routineNext}>
-                    Als Nächstes: {formatDue(next.due_date)} · {assigneeLabel(next)}
+                    {capitalize(formatDue(next.due_date))} · {assigneeLabel(next)}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -404,19 +397,30 @@ export default function TasksScreen() {
                   router.push({ pathname: "/chore/[taskId]", params: { taskId: item.task_id, date: item.due_date } })
                 }
               >
-                <Text style={styles.title}>{item.tasks.title}</Text>
+                <View style={styles.titleRow}>
+                  <Text style={styles.title}>{item.tasks.title}</Text>
+                  {itemCount > 0 && checkedCount === 0 && (
+                    <Ionicons
+                      name="checkbox-outline"
+                      size={14}
+                      color={colors.subtext}
+                      accessibilityLabel="mit Checkliste"
+                    />
+                  )}
+                </View>
                 <Text style={[styles.meta, overdue && { color: colors.dangerText }]}>
-                  {formatDue(item.due_date)} · {assigneeLabel(item)} · {item.tasks.points} Pkt
+                  {capitalize(formatDue(item.due_date))} · {assigneeLabel(item)}
                 </Text>
-                {itemCount > 0 && (
+                {/* Fortschritt erst, wenn jemand angefangen hat */}
+                {itemCount > 0 && checkedCount > 0 && (
                   <View style={styles.progressRow}>
                     <Ionicons
                       name={checkedCount === itemCount ? "checkbox" : "checkbox-outline"}
                       size={13}
-                      color={checkedCount > 0 ? colors.successText : colors.subtext}
+                      color={colors.successText}
                     />
-                    <Text style={[styles.meta, checkedCount > 0 && { color: colors.successText }]}>
-                      {checkedCount > 0 ? `${checkedCount} von ${itemCount} abgehakt` : `Checkliste · ${itemCount} Punkte`}
+                    <Text style={[styles.meta, { color: colors.successText }]}>
+                      {checkedCount} von {itemCount} abgehakt
                     </Text>
                   </View>
                 )}
@@ -469,8 +473,8 @@ const useStyles = makeStyles((colors) => ({
   },
   cardOverdue: { borderColor: colors.danger },
   title: { fontSize: 16, fontWeight: "600", color: colors.text, flexShrink: 1 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
   meta: { fontSize: 13, color: colors.subtext },
-  routineCount: { fontSize: 13, color: colors.subtext, paddingBottom: 2 },
   progressRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   wasteBanner: {
     flexDirection: "row",

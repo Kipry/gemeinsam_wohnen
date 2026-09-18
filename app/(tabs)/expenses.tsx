@@ -19,6 +19,12 @@ type ExpenseWithShares = Expense & { expense_shares: { user_id: string; share_ce
 
 type ExpensesSnapshot = { expenses: ExpenseWithShares[]; balances: ExpenseBalance[] };
 
+/** „14.09." — Jahr nur, wenn es nicht das laufende ist; der Wochentag machte die Zeile zu lang */
+function formatExpenseDate(iso: string): string {
+  const [year, month, day] = iso.split("-");
+  return `${day}.${month}.${Number(year) === new Date().getFullYear() ? "" : year}`;
+}
+
 export default function ExpensesScreen() {
   const styles = useStyles();
   const colors = useColors();
@@ -155,24 +161,22 @@ export default function ExpensesScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Wer wem was zahlt, steht darunter beim Ausgleich — hier nur die Zahl */}
             <Card>
               <Text style={styles.balanceLabel}>Dein Saldo</Text>
-              <Text
-                style={[
-                  styles.balanceValue,
-                  { color: myBalance >= 0 ? colors.successText : colors.dangerText },
-                ]}
-              >
-                {myBalance >= 0 ? "+" : ""}
-                {formatCents(myBalance)}
-              </Text>
-              <Text style={styles.balanceHint}>
-                {myBalance > 0
-                  ? "Du bekommst Geld zurück."
-                  : myBalance < 0
-                    ? "Du schuldest der WG Geld."
-                    : "Alles ausgeglichen."}
-              </Text>
+              {myBalance === 0 ? (
+                <Text style={styles.balanceEven}>Alles ausgeglichen</Text>
+              ) : (
+                <Text
+                  style={[
+                    styles.balanceValue,
+                    { color: myBalance > 0 ? colors.successText : colors.dangerText },
+                  ]}
+                >
+                  {myBalance > 0 ? "+" : ""}
+                  {formatCents(myBalance)}
+                </Text>
+              )}
             </Card>
 
             {myTransfers.length > 0 && (
@@ -216,8 +220,8 @@ export default function ExpensesScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.expenseTitle}>{item.title}</Text>
                   <Text style={styles.expenseMeta}>
-                    {nameFor(item.paid_by)} · {item.expense_date} · dein Anteil{" "}
-                    {formatCents(myShare)}
+                    {nameFor(item.paid_by)} · {formatExpenseDate(item.expense_date)}
+                    {myShare > 0 ? ` · dein Anteil ${formatCents(myShare)}` : ""}
                   </Text>
                 </View>
                 {item.receipt_path && (
@@ -243,7 +247,7 @@ const useStyles = makeStyles((colors) => ({
   bookedText: { flex: 1, fontSize: 13, color: colors.text },
   balanceLabel: { fontSize: 13, color: colors.subtext },
   balanceValue: { fontSize: 30, fontWeight: "700" },
-  balanceHint: { fontSize: 13, color: colors.subtext },
+  balanceEven: { fontSize: 22, fontWeight: "700", color: colors.text },
   settleCard: { flexDirection: "row", alignItems: "center", gap: 10 },
   settleText: { fontSize: 14, color: colors.subtext },
   settleAmount: { fontSize: 17, fontWeight: "700", color: colors.text },

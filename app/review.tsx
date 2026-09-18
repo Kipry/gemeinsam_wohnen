@@ -18,12 +18,24 @@ import {
   type ReviewExpense,
 } from "../src/lib/monthReview";
 import { Card, Muted, pullToRefresh } from "../src/components/ui";
+import { confirmChoreRestart, statsCountingSince } from "../src/lib/choreRestart";
+import type { ChoreStats } from "../src/types/database";
 
+/** „14.09.2026" */
+function formatDay(timestamp: string) {
+  const date = new Date(timestamp);
+  return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}.${date.getFullYear()}`;
+}
+
+/**
+ * Rückblick: oben der Punktestand seit dem letzten Neustart (früher eigene
+ * Statistik-Seite), darunter Kosten und Putzen des gewählten Monats.
+ */
 export default function MonthReview() {
   const styles = useStyles();
   const colors = useColors();
   const { session } = useAuth();
-  const { activeHousehold } = useHousehold();
+  const { activeHousehold, refresh } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
 
   const now = new Date();
@@ -31,6 +43,7 @@ export default function MonthReview() {
   const [expenses, setExpenses] = useState<ReviewExpense[]>([]);
   const [previousTotal, setPreviousTotal] = useState(0);
   const [chores, setChores] = useState<ReviewChore[]>([]);
+  const [stats, setStats] = useState<ChoreStats[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isCurrentMonth = cursor.year === now.getFullYear() && cursor.month === now.getMonth();
@@ -81,12 +94,30 @@ export default function MonthReview() {
     setChores((choreResult.data as unknown as ReviewChore[]) ?? []);
     setLoading(false);
   }, [activeHousehold, cursor]);
-  const { refreshing, onRefresh } = useRefresh(load);
+
+  // Punktestand seit dem letzten Neustart — unabhängig vom gewählten Monat
+  const loadStats = useCallback(async () => {
+    if (!activeHousehold) return;
+    const { data, error } = await supabase
+      .from("chore_stats_view")
+      .select("*")
+      .eq("household_id", activeHousehold.id);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setStats((data as ChoreStats[]) ?? []);
+  }, [activeHousehold]);
+
+  const loadAll = useCallback(async () => {
+    await Promise.all([load(), loadStats()]);
+  }, [load, loadStats]);
+  const { refreshing, onRefresh } = useRefresh(loadAll);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      loadAll();
+    }, [loadAll])
   );
 
   const memberIds = useMemo(() => members.map((member) => member.id), [members]);
@@ -115,12 +146,62 @@ export default function MonthReview() {
   const maxCategory = Math.max(1, ...expenseSummary.byCategory.map((entry) => entry.cents));
   const maxPoints = Math.max(1, ...chorePeople.map(([, entry]) => entry.points));
 
+  const fairRows = [...stats].sort((a, b) => b.points_done - a.points_done);
+  const fairMax = Math.max(1, ...fairRows.map((row) => row.points_done));
+  const fairAverage = fairRows.length
+    ? fairRows.reduce((sum, row) => sum + row.points_done, 0) / fairRows.length
+    : 0;
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={pullToRefresh(refreshing, onRefresh)}
     >
+      {activeHousehold && fairRows.length > 0 && (
+        <Card>
+          <Text style={styles.cardTitle}>Putzen seit {formatDay(statsCountingSince(activeHousehold))}</Text>
+          {fairRows.map((row) => {
+            const diff = row.points_done - fairAverage;
+            const onTime = row.tasks_done > 0 ? Math.round((row.done_on_time / row.tasks_done) * 100) : null;
+            return (
+              <View key={row.user_id} style={styles.fairRow}>
+                <BarRow
+                  label={nameFor(row.user_id)}
+                  value={`${row.points_done} Pkt · ${row.tasks_done} erledigt`}
+                  ratio={row.points_done / fairMax}
+                />
+                <Text style={styles.fairMeta}>
+                  <Text style={{ color: diff >= 0 ? colors.successText : colors.dangerText, fontWeight: "600" }}>
+                    {diff >= 0 ? "+" : "−"}
+                    {Math.abs(diff).toFixed(1).replace(".", ",")} ggü. Schnitt
+                  </Text>
+                  {onTime !== null ? ` · ${onTime} % pünktlich` : ""}
+                  {row.open_assigned > 0 ? ` · ${row.open_assigned} offen` : ""}
+                  {row.overdue_assigned > 0 && (
+                    <Text style={{ color: colors.dangerText, fontWeight: "700" }}>
+                      {` · ${row.overdue_assigned} überfällig`}
+                    </Text>
+                  )}
+                </Text>
+              </View>
+            );
+          })}
+          <TouchableOpacity
+            style={styles.restart}
+            onPress={() =>
+              confirmChoreRestart(activeHousehold.id, async () => {
+                await refresh();
+                loadStats();
+              })
+            }
+            accessibilityRole="button"
+          >
+            <Text style={styles.restartLink}>Putzplan neu starten</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
+
       <View style={styles.monthHeader}>
         <TouchableOpacity onPress={() => shiftMonth(-1)} style={styles.monthButton}>
           <Ionicons name="chevron-back" size={20} color={colors.text} />
@@ -197,7 +278,7 @@ export default function MonthReview() {
           )}
 
           <Card>
-            <Text style={styles.cardTitle}>Putzen</Text>
+            <Text style={styles.cardTitle}>Putzen im {monthName(cursor.month)}</Text>
             {choreSummary.count === 0 ? (
               <Muted>In diesem Monat wurde noch nichts abgehakt.</Muted>
             ) : (
@@ -280,4 +361,8 @@ const useStyles = makeStyles((colors) => ({
   personNumbers: { alignItems: "flex-end", minWidth: 84 },
   personValue: { fontSize: 15, color: colors.text, fontVariant: ["tabular-nums"] },
   personMeta: { fontSize: 11, color: colors.subtext },
+  fairRow: { gap: 2 },
+  fairMeta: { fontSize: 12, color: colors.subtext },
+  restart: { alignSelf: "center", paddingTop: 8, paddingBottom: 2 },
+  restartLink: { fontSize: 14, fontWeight: "600", color: colors.tint },
 }));

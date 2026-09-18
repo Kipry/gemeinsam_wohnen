@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { router } from "expo-router";
 import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,30 +10,14 @@ import { makeStyles, useColors } from "../src/lib/theme";
 import { formatCents } from "../src/lib/money";
 import { signOutToLogin } from "../src/lib/signOut";
 import { legalLinks } from "../src/lib/links";
-import { Button, Card, Input, SectionTitle } from "../src/components/ui";
+import { Button, Card, SectionTitle } from "../src/components/ui";
 
 const LINKS = [
-  {
-    href: "/review",
-    icon: "bar-chart",
-    title: "Monatsrückblick",
-    subtitle: "Kosten und Putzen im Monat",
-  },
-  { href: "/stats", icon: "stats-chart", title: "Statistik", subtitle: "Wer hat wie viel gemacht" },
-  {
-    href: "/recurring",
-    icon: "repeat",
-    title: "Feste Kosten",
-    subtitle: "Miete, Strom, Streaming",
-  },
-  { href: "/waste", icon: "trash", title: "Müllabfuhr", subtitle: "Wann welche Tonne abgeholt wird" },
-  { href: "/teams", icon: "people", title: "Teams", subtitle: "Putz-Teams verwalten" },
-  {
-    href: "/notifications",
-    icon: "notifications",
-    title: "Mitteilungen",
-    subtitle: "Was dein Handy dir meldet",
-  },
+  { href: "/review", icon: "bar-chart", title: "Rückblick" },
+  { href: "/recurring", icon: "repeat", title: "Feste Kosten" },
+  { href: "/waste", icon: "trash", title: "Müllabfuhr" },
+  { href: "/teams", icon: "people", title: "Teams" },
+  { href: "/notifications", icon: "notifications", title: "Mitteilungen" },
 ] as const;
 
 export default function MoreScreen() {
@@ -44,43 +27,8 @@ export default function MoreScreen() {
   const { session } = useAuth();
   const { activeHousehold, households, setActiveHousehold, refresh } = useHousehold();
   const { members } = useHouseholdMembers(activeHousehold?.id);
-  const { placeholders, refresh: refreshPlaceholders } = usePlaceholders(activeHousehold?.id);
-  const [newName, setNewName] = useState("");
+  const { placeholders } = usePlaceholders(activeHousehold?.id);
   const myName = members.find((member) => member.id === session?.user.id)?.full_name;
-
-  const addPlaceholder = async () => {
-    if (!activeHousehold || !session || !newName.trim()) return;
-    const { error } = await supabase.from("household_placeholders").insert({
-      household_id: activeHousehold.id,
-      name: newName.trim(),
-      created_by: session.user.id,
-    });
-    if (error) {
-      Alert.alert("Fehler", error.message);
-      return;
-    }
-    setNewName("");
-    refreshPlaceholders();
-  };
-
-  const removePlaceholder = (id: string, name: string) => {
-    Alert.alert(
-      `${name} entfernen?`,
-      "Der Platz verschwindet aus allen Rotationen, offene Termine werden neu verteilt.",
-      [
-        { text: "Abbrechen", style: "cancel" },
-        {
-          text: "Entfernen",
-          style: "destructive",
-          onPress: async () => {
-            const { error } = await supabase.rpc("remove_placeholder", { p_placeholder_id: id });
-            if (error) Alert.alert("Fehler", error.message);
-            refreshPlaceholders();
-          },
-        },
-      ]
-    );
-  };
 
   const leaveHousehold = async () => {
     if (!activeHousehold || !session) return;
@@ -140,62 +88,30 @@ export default function MoreScreen() {
           <Text style={styles.householdName}>{activeHousehold?.name}</Text>
           <Text style={styles.muted}>
             {members.length} {members.length === 1 ? "Mitglied" : "Mitglieder"}
+            {placeholders.length > 0 ? ` · ${placeholders.length} noch nicht dabei` : ""}
           </Text>
           <Text style={styles.codeLabel}>Einladungscode</Text>
           <Text style={styles.code}>{activeHousehold?.invite_code}</Text>
           <View style={styles.inviteRow}>
             <Ionicons name="share-outline" size={16} color={colors.tint} />
-            <Text style={styles.inviteText}>Mitbewohner einladen — Link oder QR-Code</Text>
+            <Text style={styles.inviteText}>Mitbewohner einladen oder vormerken</Text>
           </View>
         </Card>
       </TouchableOpacity>
 
-      <Card>
-        <Text style={styles.linkTitle}>Noch nicht beigetreten</Text>
-        <Text style={styles.muted}>
-          Vorgemerkte Mitbewohner stehen schon im Putzplan. Beim Beitritt wählen sie ihren Namen und
-          übernehmen den Platz.
-        </Text>
-        {placeholders.length > 0 && (
-          <View style={styles.placeholderWrap}>
-            {placeholders.map((placeholder) => (
-              <TouchableOpacity
-                key={placeholder.id}
-                style={styles.placeholderChip}
-                onPress={() => removePlaceholder(placeholder.id, placeholder.name)}
-              >
-                <Text style={styles.placeholderText}>{placeholder.name}</Text>
-                <Ionicons name="close" size={14} color={colors.subtext} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        <View style={styles.addRow}>
-          <Input
-            style={{ flex: 1, paddingVertical: 8 }}
-            placeholder="Name vormerken"
-            value={newName}
-            onChangeText={setNewName}
-            onSubmitEditing={addPlaceholder}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={addPlaceholder}>
-            <Ionicons name="add" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </Card>
-
-      {LINKS.map((link) => (
-        <TouchableOpacity key={link.href} onPress={() => router.push(link.href)}>
-          <Card style={styles.linkCard}>
-            <Ionicons name={link.icon} size={22} color={colors.tint} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.linkTitle}>{link.title}</Text>
-              <Text style={styles.muted}>{link.subtitle}</Text>
-            </View>
+      <Card style={styles.linkGroup}>
+        {LINKS.map((link, index) => (
+          <TouchableOpacity
+            key={link.href}
+            style={[styles.linkRow, index > 0 && styles.linkRowDivider]}
+            onPress={() => router.push(link.href)}
+          >
+            <Ionicons name={link.icon} size={20} color={colors.tint} />
+            <Text style={[styles.linkTitle, { flex: 1 }]}>{link.title}</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.subtext} />
-          </Card>
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        ))}
+      </Card>
 
       {households.length > 1 && (
         <>
@@ -264,26 +180,7 @@ const useStyles = makeStyles((colors) => ({
   legalLink: { fontSize: 13, color: colors.subtext, textDecorationLine: "underline" },
   deleteAccount: { alignSelf: "center", paddingVertical: 10, paddingHorizontal: 16 },
   deleteAccountText: { fontSize: 14, color: colors.subtext, textDecorationLine: "underline" },
-  placeholderWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  placeholderChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: "dashed",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  placeholderText: { fontSize: 14, color: colors.text },
-  addRow: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 10 },
-  addButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  linkGroup: { paddingVertical: 0, gap: 0 },
+  linkRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 13 },
+  linkRowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
 }));

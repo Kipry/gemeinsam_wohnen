@@ -21,7 +21,6 @@ import { makeStyles, useColors } from "../../src/lib/theme";
 import { addDays, todayISO } from "../../src/lib/dates";
 import { consumePollSent } from "../../src/lib/polls";
 import { joinWithAnd } from "../../src/lib/text";
-import { Chip } from "../../src/components/ui";
 import { PollCard } from "../../src/components/PollCard";
 import { describeError, onReconnect } from "../../src/lib/connectivity";
 import { useOfflineSnapshot } from "../../src/lib/offlineCache";
@@ -41,8 +40,15 @@ const EVENT_ROUTE: Record<string, (id: string) => string> = {
   expenses: (id) => `/expense/${id}`,
   calendar_events: (id) => `/event/${id}`,
   absences: () => "/(tabs)/calendar",
-  households: () => "/stats",
+  households: () => "/review",
 };
+
+/** Hinter dem „+" — normale Nachrichten brauchen keine Auswahl */
+const KIND_OPTIONS = [
+  { kind: "request", icon: "hand-left-outline", label: "Bitte", hint: "Jemand übernimmt und hakt ab" },
+  { kind: "announcement", icon: "pin-outline", label: "Aushang", hint: "Bleibt oben, bis alle ihn gesehen haben" },
+  { kind: "poll", icon: "stats-chart-outline", label: "Umfrage", hint: "Alle stimmen ab" },
+] as const;
 
 const KIND_TITLE: Record<ChatKind, string> = {
   message: "Nachricht",
@@ -66,6 +72,7 @@ export default function ChatScreen() {
   const [votes, setVotes] = useState<PollVote[]>([]);
   const [text, setText] = useState("");
   const [kind, setKind] = useState<ChatKind>("message");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [expandedNotice, setExpandedNotice] = useState<string | null>(null);
   // Text, der beim Tippen auf „Umfrage" als Frage mitging
   const pollDraft = useRef<string | null>(null);
@@ -282,6 +289,12 @@ export default function ChatScreen() {
     }
     hapticTap();
     setKind("message");
+  };
+
+  const chooseKind = (next: (typeof KIND_OPTIONS)[number]["kind"]) => {
+    setMenuOpen(false);
+    if (next === "poll") startPoll();
+    else setKind(next);
   };
 
   const startPoll = () => {
@@ -572,18 +585,49 @@ export default function ChatScreen() {
       />
 
       <View style={styles.composer}>
-        <View style={styles.kindRow}>
-          <Chip label="Nachricht" selected={kind === "message"} onPress={() => setKind("message")} compact />
-          <Chip label="Bitte" selected={kind === "request"} onPress={() => setKind("request")} compact />
-          <Chip
-            label="Aushang"
-            selected={kind === "announcement"}
-            onPress={() => setKind("announcement")}
-            compact
-          />
-          <Chip label="Umfrage" selected={false} onPress={startPoll} compact />
-        </View>
+        {menuOpen && (
+          <View style={styles.kindMenu}>
+            {KIND_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.kind}
+                style={styles.kindOption}
+                onPress={() => chooseKind(option.kind)}
+                accessibilityRole="button"
+              >
+                <Ionicons name={option.icon} size={20} color={colors.tint} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.kindOptionTitle}>{option.label}</Text>
+                  <Text style={styles.kindOptionHint}>{option.hint}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        {kind !== "message" && (
+          <View style={styles.kindTag}>
+            <Ionicons
+              name={kind === "request" ? "hand-left-outline" : "pin-outline"}
+              size={14}
+              color={colors.tint}
+            />
+            <Text style={styles.kindTagText}>{KIND_TITLE[kind]}</Text>
+            <TouchableOpacity
+              onPress={() => setKind("message")}
+              hitSlop={10}
+              accessibilityLabel="Doch normale Nachricht"
+            >
+              <Ionicons name="close" size={14} color={colors.subtext} />
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.inputRow}>
+          <TouchableOpacity
+            style={styles.plusButton}
+            onPress={() => setMenuOpen((open) => !open)}
+            accessibilityLabel={menuOpen ? "Auswahl schließen" : "Bitte, Aushang oder Umfrage"}
+          >
+            <Ionicons name={menuOpen ? "close" : "add"} size={26} color={colors.tint} />
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder={
@@ -597,9 +641,10 @@ export default function ChatScreen() {
             value={text}
             onChangeText={setText}
             onSubmitEditing={send}
+            onFocus={() => setMenuOpen(false)}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={send}>
-            <Text style={styles.sendButtonText}>Senden</Text>
+          <TouchableOpacity style={styles.sendButton} onPress={send} accessibilityLabel="Senden">
+            <Ionicons name="arrow-up" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -690,7 +735,22 @@ const useStyles = makeStyles((colors) => ({
     padding: 12,
     gap: 8,
   },
-  kindRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  kindMenu: { gap: 2 },
+  kindOption: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8, paddingHorizontal: 6 },
+  kindOptionTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
+  kindOptionHint: { fontSize: 12, color: colors.subtext },
+  kindTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: colors.eventTint,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  kindTagText: { fontSize: 13, fontWeight: "600", color: colors.tint },
+  plusButton: { width: 36, justifyContent: "center", alignItems: "center" },
   inputRow: { flexDirection: "row", gap: 8 },
   input: {
     flex: 1,
@@ -706,8 +766,10 @@ const useStyles = makeStyles((colors) => ({
   sendButton: {
     backgroundColor: colors.primary,
     borderRadius: 20,
-    paddingHorizontal: 16,
+    width: 40,
+    height: 40,
     justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
   },
-  sendButtonText: { color: "#fff", fontWeight: "600" },
 }));

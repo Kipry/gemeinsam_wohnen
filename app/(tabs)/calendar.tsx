@@ -297,6 +297,10 @@ export default function CalendarScreen() {
   if (loading) return <Loading />;
 
   const selectedInfo = dayInfo(selected);
+  // „Heute" nur anbieten, wenn man gerade woanders ist
+  const now = new Date();
+  const showsToday =
+    selected === today && cursor.year === now.getFullYear() && cursor.month === now.getMonth();
   const awayToday = dayInfo(today).absences;
   const isEmptyDay =
     selectedInfo.events.length +
@@ -328,9 +332,11 @@ export default function CalendarScreen() {
           <TouchableOpacity onPress={() => shiftMonth(1)} style={styles.monthButton}>
             <Ionicons name="chevron-forward" size={20} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={jumpToToday} style={styles.todayButton}>
-            <Text style={styles.todayButtonText}>Heute</Text>
-          </TouchableOpacity>
+          {!showsToday && (
+            <TouchableOpacity onPress={jumpToToday} style={styles.todayButton}>
+              <Text style={styles.todayButtonText}>Heute</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.weekHeader}>
@@ -466,11 +472,6 @@ export default function CalendarScreen() {
         </View>
 
         <View style={styles.legend}>
-          <LegendBar tint={tint.event} accent={dot.event} label="Termin" />
-          <LegendBar tint={tint.absence} accent={dot.absence} label="Abwesend" />
-          <Legend color={dot.chore} label="Deine Aufgabe" />
-        </View>
-        <View style={styles.legend}>
           {bins.map((bin) => (
             <TouchableOpacity key={bin.id} style={styles.legendItem} onPress={() => router.push("/waste")}>
               <Ionicons name="trash" size={11} color={colors.waste[bin.kind]} />
@@ -508,9 +509,7 @@ export default function CalendarScreen() {
                 <Text style={styles.entryMeta}>
                   {entry.status === "moved"
                     ? `verschoben vom ${formatShort(entry.originalDate)}`
-                    : entry.status === "cancelled"
-                      ? "antippen, um sie zurückzuholen"
-                      : `${rhythmText(entry.bin)} · antippen zum Verschieben`}
+                    : rhythmText(entry.bin)}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.subtext} />
@@ -616,26 +615,6 @@ export default function CalendarScreen() {
   );
 }
 
-function LegendBar({ tint, accent, label }: { tint: string; accent: string; label: string }) {
-  const styles = useStyles();
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendBar, { backgroundColor: tint, borderLeftColor: accent }]} />
-      <Text style={styles.legendText}>{label}</Text>
-    </View>
-  );
-}
-
-function Legend({ color, label }: { color: string; label: string }) {
-  const styles = useStyles();
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={styles.legendText}>{label}</Text>
-    </View>
-  );
-}
-
 const useStyles = makeStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   awayBanner: {
@@ -707,14 +686,12 @@ const useStyles = makeStyles((colors) => ({
     fontSize: 10,
     color: colors.subtext,
   },
-  legendBar: { width: 16, height: 8, borderLeftWidth: 3, borderRadius: 2 },
   dayCircle: { width: 28, height: 28, borderRadius: 14, justifyContent: "center", alignItems: "center" },
   dayToday: { borderWidth: 1.5, borderColor: colors.primary },
   daySelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   dayNumber: { fontSize: 15, color: colors.text },
   dayOutside: { color: colors.faint },
   dayNumberSelected: { color: "#fff", fontWeight: "700" },
-  dot: { width: 6, height: 6, borderRadius: 3 },
   legend: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", columnGap: 14, rowGap: 6, paddingVertical: 6 },
   legendLink: { fontSize: 12, fontWeight: "600", color: colors.tint },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },

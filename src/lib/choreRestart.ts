@@ -25,7 +25,7 @@ export async function confirmChoreRestart(householdId: string, onDone: () => voi
     overdue > 0
       ? `${overdue} überfällige ${overdue === 1 ? "Aufgabe fällt" : "Aufgaben fallen"} weg.`
       : null,
-    "Im Chat sehen alle, dass du neu gestartet hast. Der Monatsrückblick bleibt, wie er ist.",
+    "Im Chat sehen alle, dass du neu gestartet hast. Die Monatszahlen im Rückblick bleiben, wie sie sind.",
   ]
     .filter(Boolean)
     .join("\n\n");
