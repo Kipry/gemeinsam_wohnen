@@ -133,6 +133,7 @@ export function TaskForm({
   const [fixedAssignee, setFixedAssignee] = useState<string | null>(initial?.fixed_assignee ?? null);
   const [skipAbsent, setSkipAbsent] = useState(initial?.skip_absent ?? true);
   const [weekday, setWeekday] = useState<number | null>(start?.weekday ?? null);
+  const weeklyRhythm = (Number(intervalDays) || 7) % 7 === 0;
   const [description, setDescription] = useState(start?.description ?? "");
   const [checklist, setChecklist] = useState<ChecklistDraft[]>(start?.checklist ?? []);
   const [newItem, setNewItem] = useState("");
@@ -217,7 +218,7 @@ export function TaskForm({
             : [],
       fixed_assignee: mode === "fixed" ? fixedAssignee : null,
       skip_absent: skipAbsent,
-      weekday,
+      weekday: weeklyRhythm ? weekday : null,
       description: description.trim() || null,
       // Noch nicht mit + übernommene Eingabe nicht verlieren
       checklist: [...checklist, ...(newItem.trim() ? [{ label: newItem.trim() }] : [])]
@@ -269,6 +270,29 @@ export function TaskForm({
         </View>
       </View>
 
+      {/* Ein fester Wochentag passt nur zu ganzen Wochen — „alle 3 Tage, dienstags" wäre
+          in Wahrheit jeden Dienstag gewesen */}
+      {weeklyRhythm && (
+        <>
+          <SectionTitle>Fester Wochentag</SectionTitle>
+          <View style={styles.chipWrap}>
+            <Chip label="Egal" selected={weekday === null} onPress={() => setWeekday(null)} />
+            {WEEKDAYS.map((day) => (
+              <Chip
+                key={day.value}
+                label={day.label}
+                selected={weekday === day.value}
+                onPress={() => setWeekday(day.value)}
+              />
+            ))}
+          </View>
+          <Muted>
+            Mit festem Wochentag bleibt „Müll dienstags" auch dann dienstags, wenn mal später
+            abgehakt wird.
+          </Muted>
+        </>
+      )}
+
       <SectionTitle>Checkliste</SectionTitle>
       <Muted>Was gehört dazu? Beim Erledigen lässt sich alles abhaken.</Muted>
       {checklist.map((item, index) => (
@@ -313,23 +337,6 @@ export function TaskForm({
         multiline
         style={styles.notes}
       />
-
-      <SectionTitle>Fester Wochentag</SectionTitle>
-      <View style={styles.chipWrap}>
-        <Chip label="Egal" selected={weekday === null} onPress={() => setWeekday(null)} />
-        {WEEKDAYS.map((day) => (
-          <Chip
-            key={day.value}
-            label={day.label}
-            selected={weekday === day.value}
-            onPress={() => setWeekday(day.value)}
-          />
-        ))}
-      </View>
-      <Muted>
-        Mit festem Wochentag bleibt „Müll dienstags" auch dann dienstags, wenn mal später
-        abgehakt wird.
-      </Muted>
 
       <SectionTitle>Zuteilung</SectionTitle>
       <View style={styles.chipWrap}>
