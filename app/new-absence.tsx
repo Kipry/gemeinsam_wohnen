@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
+import { describeError } from "../src/lib/connectivity";
 import { useAuth } from "../src/lib/AuthProvider";
 import { useHousehold } from "../src/lib/HouseholdProvider";
 import { makeStyles } from "../src/lib/theme";
@@ -29,6 +30,8 @@ export default function NewAbsence() {
   const [end, setEnd] = useState(picked);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  // Die Schnellwahl speichert beim ersten Tipp — ein Doppeltipp legte sonst zwei Einträge an
+  const savingRef = useRef(false);
 
   if (!session || !activeHousehold) return <Loading />;
 
@@ -48,23 +51,26 @@ export default function NewAbsence() {
   }
 
   const save = async (range: Range) => {
+    if (savingRef.current) return;
     if (range.end < range.start) {
       Alert.alert("Ungültiger Zeitraum", "Das Enddatum liegt vor dem Startdatum.");
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
-    const { error } = await supabase.from("absences").insert({
+    const { error, status } = await supabase.from("absences").insert({
       household_id: activeHousehold.id,
       user_id: session.user.id,
       start_date: range.start,
       end_date: range.end,
       note: note.trim() || null,
     });
-    setSaving(false);
 
     if (error) {
-      Alert.alert("Fehler", error.message);
+      savingRef.current = false;
+      setSaving(false);
+      Alert.alert("Fehler", describeError(error, status));
       return;
     }
     if (router.canGoBack()) router.back();

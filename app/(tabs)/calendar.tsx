@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +23,7 @@ import { onReconnect } from "../../src/lib/connectivity";
 import { useOfflineSnapshot } from "../../src/lib/offlineCache";
 import { EVENT_KINDS } from "../../src/lib/eventKinds";
 import { layoutWeek, type SpanItem } from "../../src/lib/calendarLayout";
+import { mergeAbsences, type AbsenceBlock } from "../../src/lib/absences";
 import { useWaste } from "../../src/lib/useWaste";
 import { collectionsBetween, rhythmText } from "../../src/lib/waste";
 import { Loading, pullToRefresh, UndoToast } from "../../src/components/ui";
@@ -72,7 +73,9 @@ export default function CalendarScreen() {
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [chores, setChores] = useState<Chore[]>([]);
   const [loading, setLoading] = useState(true);
-  const [undo, setUndo] = useState<Absence | null>(null);
+  const [undo, setUndo] = useState<AbsenceBlock | null>(null);
+  // Läuft das Löschen noch, wartet „Rückgängig" darauf — sonst überholt es das Löschen
+  const pendingDelete = useRef<PromiseLike<unknown> | null>(null);
 
   const grid = useMemo(() => monthGrid(cursor.year, cursor.month), [cursor]);
   const rangeStart = grid[0];
@@ -199,18 +202,20 @@ export default function CalendarScreen() {
     [chores, session, myTeamIds]
   );
 
+  const absenceBlocks = useMemo(() => mergeAbsences(absences), [absences]);
+
   const nameFor = (userId: string) =>
     userId === session?.user.id ? "Du" : members.find((m) => m.id === userId)?.full_name ?? FORMER_MEMBER;
 
   const dayInfo = useCallback(
     (iso: string) => ({
       events: events.filter((event) => event.starts_on <= iso && event.ends_on >= iso),
-      absences: absences.filter((absence) => absence.start_date <= iso && absence.end_date >= iso),
+      absences: absenceBlocks.filter((block) => block.start_date <= iso && block.end_date >= iso),
       chores: myChores.filter((chore) => chore.due_date === iso),
       // Ausgefallene bleiben in der Tagesansicht sichtbar, damit man sie zurückholen kann
       waste: collections.filter((entry) => entry.date === iso),
     }),
-    [events, absences, myChores, collections]
+    [events, absenceBlocks, myChores, collections]
   );
 
   const weeks = useMemo(
@@ -227,18 +232,18 @@ export default function CalendarScreen() {
         end: event.ends_on,
         label: event.title,
       })),
-      ...absences.map((absence) => ({
-        id: absence.id,
+      ...absenceBlocks.map((block) => ({
+        id: block.id,
         kind: "absence" as const,
-        start: absence.start_date,
-        end: absence.end_date,
+        start: block.start_date,
+        end: block.end_date,
         label:
-          absence.user_id === session?.user.id
+          block.user_id === session?.user.id
             ? "Du"
-            : members.find((member) => member.id === absence.user_id)?.full_name ?? FORMER_MEMBER,
+            : members.find((member) => member.id === block.user_id)?.full_name ?? FORMER_MEMBER,
       })),
     ],
-    [events, absences, members, session]
+    [events, absenceBlocks, members, session]
   );
 
   const shiftMonth = (delta: number) => {
@@ -254,22 +259,38 @@ export default function CalendarScreen() {
     setSelected(today);
   };
 
-  const removeAbsence = async (absence: Absence) => {
-    setAbsences((prev) => prev.filter((entry) => entry.id !== absence.id));
-    setUndo(absence);
-    await supabase.from("absences").delete().eq("id", absence.id);
+  const removeAbsence = (block: AbsenceBlock) => {
+    const ids = block.entries.map((entry) => entry.id);
+    setAbsences((prev) => prev.filter((entry) => !ids.includes(entry.id)));
+    setUndo(block);
+    pendingDelete.current = supabase
+      .from("absences")
+      .delete()
+      .in("id", ids)
+      .then(({ error }) => {
+        if (error) load();
+      });
   };
 
   const undoRemove = async () => {
-    if (!undo) return;
-    await supabase.from("absences").insert({
-      household_id: undo.household_id,
-      user_id: undo.user_id,
-      start_date: undo.start_date,
-      end_date: undo.end_date,
-      note: undo.note,
-    });
+    const block = undo;
+    if (!block) return;
+    // Sofort ausblenden, damit ein zweiter Tipp nichts doppelt anlegt
     setUndo(null);
+    await pendingDelete.current;
+    const restored = block.entries.filter(
+      (entry, index, all) =>
+        all.findIndex((other) => other.start_date === entry.start_date && other.end_date === entry.end_date) === index
+    );
+    await supabase.from("absences").insert(
+      restored.map(({ household_id, user_id, start_date, end_date, note }) => ({
+        household_id,
+        user_id,
+        start_date,
+        end_date,
+        note,
+      }))
+    );
     load();
   };
 
@@ -294,7 +315,7 @@ export default function CalendarScreen() {
           <View style={styles.awayBanner}>
             <Ionicons name="airplane" size={14} color={dot.absence} />
             <Text style={styles.awayText}>
-              Heute nicht da: {awayToday.map((absence) => nameFor(absence.user_id)).join(", ")}
+              Heute nicht da: {awayToday.map((block) => nameFor(block.user_id)).join(", ")}
             </Text>
           </View>
         )}
@@ -526,22 +547,22 @@ export default function CalendarScreen() {
             );
           })}
 
-          {selectedInfo.absences.map((absence) => (
-            <View key={absence.id} style={styles.entry}>
+          {selectedInfo.absences.map((block) => (
+            <View key={block.id} style={styles.entry}>
               <Ionicons name="airplane" size={18} color={dot.absence} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.entryTitle}>
-                  {absence.user_id === session?.user.id ? "Du bist weg" : `${nameFor(absence.user_id)} ist weg`}
+                  {block.user_id === session?.user.id ? "Du bist weg" : `${nameFor(block.user_id)} ist weg`}
                 </Text>
                 <Text style={styles.entryMeta}>
-                  {absence.start_date === absence.end_date
+                  {block.start_date === block.end_date
                     ? "ganztägig"
-                    : `${formatShort(absence.start_date)} – ${formatShort(absence.end_date)}`}
-                  {absence.note ? ` · ${absence.note}` : ""}
+                    : `${formatShort(block.start_date)} – ${formatShort(block.end_date)}`}
+                  {block.note ? ` · ${block.note}` : ""}
                 </Text>
               </View>
-              {absence.user_id === session?.user.id && (
-                <TouchableOpacity onPress={() => removeAbsence(absence)} style={styles.iconButton}>
+              {block.user_id === session?.user.id && (
+                <TouchableOpacity onPress={() => removeAbsence(block)} style={styles.iconButton}>
                   <Ionicons name="trash-outline" size={17} color={colors.subtext} />
                 </TouchableOpacity>
               )}

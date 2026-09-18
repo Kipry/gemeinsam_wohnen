@@ -85,10 +85,13 @@ export default function Login() {
         return;
       }
 
-      // Apple liefert den Namen nur bei der allerersten Anmeldung.
-      const appleName = [credential.fullName?.givenName, credential.fullName?.familyName]
-        .filter(Boolean)
-        .join(" ");
+      // Apple liefert den Namen nur bei der allerersten Anmeldung. In der WG reicht der
+      // Vorname — der volle Name wirkte fremd; ändern lässt er sich unter „Mehr".
+      const appleName =
+        credential.fullName?.givenName?.trim() ||
+        credential.fullName?.nickname?.trim() ||
+        credential.fullName?.familyName?.trim() ||
+        "";
       if (appleName && data.user) {
         await supabase.from("profiles").update({ full_name: appleName }).eq("id", data.user.id);
       }
@@ -124,10 +127,11 @@ export default function Login() {
       {mode === "sign_up" && (
         <TextInput
           style={styles.input}
-          placeholder="Name"
+          placeholder="Vorname oder Spitzname"
           value={fullName}
           onChangeText={setFullName}
           autoCapitalize="words"
+          maxLength={40}
         />
       )}
       <TextInput

@@ -42,7 +42,8 @@ export default function RootLayout() {
           <StatusBar style="auto" />
           <PushListener />
           <OfflineSync />
-          <Stack screenOptions={{ headerTintColor: colors.text }}>
+          {/* Ohne eigenen Text zeigt iOS den Namen der vorigen Route, bei den Tabs also „(tabs)" */}
+          <Stack screenOptions={{ headerTintColor: colors.text, headerBackTitle: "Zurück" }}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -68,6 +69,7 @@ export default function RootLayout() {
             <Stack.Screen name="invite" options={{ title: "Einladen" }} />
             <Stack.Screen name="join" options={{ headerShown: false }} />
             <Stack.Screen name="more" options={{ title: "Mehr" }} />
+            <Stack.Screen name="edit-name" options={{ title: "Dein Name", presentation: "modal" }} />
             <Stack.Screen name="review" options={{ title: "Monatsrückblick" }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen name="claim" options={{ headerShown: false, gestureEnabled: false }} />

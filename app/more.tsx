@@ -46,6 +46,7 @@ export default function MoreScreen() {
   const { members } = useHouseholdMembers(activeHousehold?.id);
   const { placeholders, refresh: refreshPlaceholders } = usePlaceholders(activeHousehold?.id);
   const [newName, setNewName] = useState("");
+  const myName = members.find((member) => member.id === session?.user.id)?.full_name;
 
   const addPlaceholder = async () => {
     if (!activeHousehold || !session || !newName.trim()) return;
@@ -123,6 +124,17 @@ export default function MoreScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity onPress={() => router.push("/edit-name")}>
+        <Card style={styles.linkCard}>
+          <Ionicons name="person-circle" size={22} color={colors.tint} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkTitle}>Dein Name</Text>
+            <Text style={styles.muted}>{myName ?? "…"}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.subtext} />
+        </Card>
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => router.push("/invite")}>
         <Card>
           <Text style={styles.householdName}>{activeHousehold?.name}</Text>
