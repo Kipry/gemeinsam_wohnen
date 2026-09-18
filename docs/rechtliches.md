@@ -23,12 +23,13 @@ Datenschutzerklärung.
 | **Supabase Inc.** (Datenbank, Anmeldung, Dateispeicher) | Auftragsverarbeiter | AVV im Dashboard unter der Organisation → Einstellungen → rechtliche Dokumente annehmen bzw. bei Supabase anfragen, falls im Gratis-Tarif nicht angeboten. Danach die Liste der Unterauftragnehmer speichern (u. a. AWS, Region Frankfurt). |
 | **Amazon Web Services** | Unterauftragnehmer von Supabase | Kein eigener Vertrag nötig, nur in der eigenen Doku vermerken. |
 | **650 Industries („Expo")** – Push-Weiterleitung, Build-Dienst | Auftragsverarbeiter | AVV anfragen bzw. im Konto annehmen. Expo sieht mehr als nur den Geräte-Token: `send_push` übergibt Titel und Text im Klartext, also Namen, Chat-Inhalte, Ausgabentitel samt Beträgen und den WG-Namen. Verkleinern geht über inhaltsarme Mitteilungen (Token bleibt, Vertrag bleibt nötig) oder indem man direkt an Apple sendet und den Dienstleister ganz einspart. |
+| **Cloudflare, Inc.** – Hosting der Website (Cloudflare Pages) | Auftragsverarbeiter | Nichts zu unterschreiben: Der Self-Serve-Vertrag bindet Cloudflares Data Processing Addendum (samt Standardvertragsklauseln) per Verweis ein, sobald personenbezogene Daten anfallen — hier die IP-Adressen der Besucher. Cloudflare nimmt am Data Privacy Framework teil. Im Pages-Projekt **Web Analytics nicht einschalten**, sonst stimmt „misst nichts" auf der Website nicht mehr. |
 | **Apple** – App Store, TestFlight, Anmeldung mit Apple, Zustellung der Mitteilungen | eigener Verantwortlicher; für Teile Auftragsverarbeiter nach dem Entwicklervertrag | Kein separater AVV; im Entwicklerprogramm enthalten. In der Datenschutzerklärung nennen. |
 | **Google** (später, Play Store und FCM) | wie Apple | Erst bei Android relevant. |
 | **Fehlerüberwachung** (z. B. Sentry), falls eingebaut | Auftragsverarbeiter | AVV abschließen, EU-Region wählen, personenbezogene Daten aus den Berichten heraushalten. |
 | **RevenueCat** (falls für Käufe genutzt) | Auftragsverarbeiter | AVV abschließen; Kaufdaten enthalten Gerätekennungen. |
 
-Alles, was aus der EU heraus geht (Supabase Inc., Expo, Apple), braucht zusätzlich eine Grundlage
+Alles, was aus der EU heraus geht (Supabase Inc., Expo, Cloudflare, Apple), braucht zusätzlich eine Grundlage
 für den Drittlandtransfer: Standarddatenschutzklauseln oder Zertifizierung nach dem EU-US Data
 Privacy Framework. Beim Anbieter nachlesen und den Nachweis ablegen.
 

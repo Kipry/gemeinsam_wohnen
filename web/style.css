@@ -136,3 +136,19 @@ footer a {
   border-radius: 4px;
   padding: 0 4px;
 }
+
+.label {
+  margin: 0 0 4px;
+}
+
+.flush-top {
+  margin-top: 0;
+}
+
+.flush-bottom {
+  margin-bottom: 0;
+}
+
+.note {
+  margin-top: 12px;
+}
