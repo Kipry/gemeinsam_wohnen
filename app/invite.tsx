@@ -34,8 +34,8 @@ export default function InviteScreen() {
 
         <Button title="Einladung teilen" onPress={share} />
         <Muted>
-          Der Link öffnet die App direkt mit ausgefülltem Code. Wer die App noch nicht hat, kann
-          den Code von Hand eingeben.
+          Der Link führt auf eine Seite mit dem Code: Von dort öffnet sich die App mit ausgefülltem
+          Code, und wer sie noch nicht hat, findet den Weg zur Installation.
         </Muted>
       </View>
     </Screen>

@@ -1,7 +1,8 @@
 # Website: Einladungsseite, Datenschutz, Impressum
 
-Der Ordner `web/` ist die komplette Website — alles darin wird veröffentlicht, deshalb liegt diese
-Anleitung hier und nicht dort.
+Live unter **https://gemeinsam-wohnen.pages.dev** (Cloudflare Pages, neuer Deploy bei jedem Push auf
+`main`). Der Ordner `web/` ist die komplette Website — alles darin wird veröffentlicht, deshalb liegt
+diese Anleitung hier und nicht dort.
 
 | Datei | Adresse | Inhalt |
 | --- | --- | --- |
@@ -66,8 +67,9 @@ Ordner `web` auch per Drag-and-Drop hochladen. Dann muss man ihn nach jeder Änd
 1. In `src/lib/links.ts` die Adresse eintragen, z. B. `https://gemeinsam-wohnen.pages.dev`. Dann
    verschickt die Einladung den https-Link, und unter „Mehr" erscheinen Datenschutz und Impressum.
    Wirkt ab dem nächsten Build.
-2. In App Store Connect bei der App: **Datenschutzrichtlinie-URL** auf `…/datenschutz.html`, als
-   Support-URL die Startseite.
+2. In App Store Connect bei der App: **Datenschutzrichtlinie-URL**
+   `https://gemeinsam-wohnen.pages.dev/datenschutz` (Cloudflare leitet `.html`-Adressen dorthin um),
+   als Support-URL die Startseite.
 
 ## Später: Universal Links
 

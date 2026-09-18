@@ -3,7 +3,7 @@
  * Solange sie leer ist, verschickt die App wie bisher nur den App-Link und zeigt
  * keine Rechtliches-Verweise.
  */
-export const WEB_BASE_URL = "";
+export const WEB_BASE_URL = "https://gemeinsam-wohnen.pages.dev";
 
 /**
  * Link zum Weiterschicken. Ohne Website nur der App-Link, der ohne installierte App ins Nichts führt.
